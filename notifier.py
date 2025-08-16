@@ -15,48 +15,7 @@ All FUNCTIONS
 """
 
 
-class MangaListLabel:
-    def __init__(self, list_frame, name):
-        self.list_frame = list_frame
-        self.name = name
-        self.frame = ctk.CTkFrame(self.list_frame)
-        self.frame.configure(
-            border_width=1.5,
-            border_color="black",
-            fg_color="white"
-        )
-        self.frame.pack(fill="x", pady=4)
 
-        self.label = ctk.CTkLabel(self.frame, text=self.name, font=font)
-        self.label.pack(side="left", padx=5, pady=5)
-
-        self.remove_button = ctk.CTkButton(self.frame)
-        self.remove_button.configure(
-            text="Remove",
-            width=60,         
-            font=font,
-            fg_color="white",
-            text_color="black",
-            border_color="black",
-            border_width=1.5,
-            hover_color="light grey",
-            command=self.remove
-        )
-        self.remove_button.pack(side="right", padx=5)
-
-    def remove(self):
-        self.frame.destroy()
-        names = []
-        with open("manga_list.csv","r") as f:
-            for row in DictReader(f):                        
-                if row["name"] != self.name:
-                    names.append(row["name"])
-
-        with open("manga_list.csv","w",newline="") as f:
-            writer = DictWriter(f, ["name"])
-            writer.writeheader()
-            for name in names:
-                writer.writerow({"name": name})
 
 # Function to add manga
 def add_manga():
@@ -106,6 +65,15 @@ def show_notifications(text):
                                 )
     notification_label.pack(padx=10, pady=5)
     notification_frame.after(3000, lambda: notification_frame.destroy())
+
+def display_notifications():
+    with open("notifications.csv","r") as f:
+        rows = list(DictReader(f))
+    for row in rows:
+        NotificationLabel(notifications_list_frame,row["name"],row["time"])
+
+def clear_notifications():
+    print("Cleared")
 
 
 """ 
@@ -168,24 +136,127 @@ manga_list_frame.configure(
 )
 manga_list_frame.pack(expand=True, fill="both", pady=1, padx=110)
 
+# Class for Manga list
+class MangaListLabel:
+    def __init__(self, list_frame, name):
+        self.list_frame = list_frame
+        self.name = name
+        self.frame = ctk.CTkFrame(self.list_frame)
+        self.frame.configure(
+            border_width=1.5,
+            border_color="black",
+            fg_color="white"
+        )
+        self.frame.pack(fill="x", pady=4)
+
+        self.label = ctk.CTkLabel(self.frame, text=self.name, font=font)
+        self.label.pack(side="left", padx=5, pady=5)
+
+        self.remove_button = ctk.CTkButton(self.frame)
+        self.remove_button.configure(
+            text="Remove",
+            width=60,         
+            font=font,
+            fg_color="white",
+            text_color="black",
+            border_color="black",
+            border_width=1.5,
+            hover_color="light grey",
+            command=self.remove
+        )
+        self.remove_button.pack(side="right", padx=5)
+
+    def remove(self):
+        self.frame.destroy()
+        names = []
+        with open("manga_list.csv","r") as f:
+            for row in DictReader(f):                        
+                if row["name"] != self.name:
+                    names.append(row["name"])
+
+        with open("manga_list.csv","w",newline="") as f:
+            writer = DictWriter(f, ["name"])
+            writer.writeheader()
+            for name in names:
+                writer.writerow({"name": name})
+
+
 display_manga()
 
 
-add_button = ctk.CTkButton(manga_entry_frame, text="Add", command=add_manga)
-add_button.configure(font=font,
+add_button = ctk.CTkButton(manga_entry_frame,)
+add_button.configure(text="Add",
+                     command=add_manga,
+                     font=("Comic Sans MS", 14, "bold"),
                      fg_color="transparent",
                      text_color="black",
                      border_color="black",
                      border_width=1.5,
                      hover_color="light grey",
                      height=45,
+                     width=60,
                      corner_radius=13
                      )
 add_button.pack(side="right")
 
-
+# Notification tab
 notifications_tab = tabs.add("Notifications")
 notifications_tab.configure()
+
+clear_notification_button = ctk.CTkButton(notifications_tab)
+clear_notification_button.configure(
+            text="Clear All Notifications",
+            width=60,         
+            font=("Comic Sans MS", 14, "bold"),
+            fg_color="white",
+            text_color="black",
+            border_color="black",
+            border_width=1.5,
+            hover_color="light grey",
+            height=45,
+            corner_radius=13,
+            command=clear_notifications
+)
+
+clear_notification_button.place(x=10,y=0)
+
+notifications_list_frame = ctk.CTkScrollableFrame(notifications_tab)
+notifications_list_frame.configure(
+    fg_color="transparent",
+    border_width=1.5,
+    border_color="black",
+    corner_radius=13,
+    scrollbar_button_color="light grey",
+    scrollbar_button_hover_color="grey",
+
+)
+notifications_list_frame.pack(expand=True, fill="both", pady=(50,0), padx=110)    
+
+class NotificationLabel:
+    def __init__(self,list_frame, name, time):
+        self.name = name
+        self.time = time
+        self.list_frame = list_frame
+        self.frame = ctk.CTkFrame(self.list_frame)
+        self.frame.configure(
+            border_width=1.5,
+            border_color="black",
+            fg_color="white"
+        )
+        self.frame.pack(fill="x", pady=4)
+
+        self.label = ctk.CTkLabel(self.frame)
+        self.label.configure(
+            text=f"A new chapter of {self.name} has been released",
+            font=font,
+            height=35
+        )
+        self.label.pack(side="left", padx=5, pady=5)
+
+
+display_notifications()
+
+
 
 # Run the app
 app.mainloop()
