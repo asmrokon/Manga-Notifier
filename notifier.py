@@ -1,13 +1,117 @@
-from csv import DictWriter, DictReader, reader, writer
+from csv import DictWriter, DictReader
 
 import customtkinter as ctk
+import requests
+from bs4 import BeautifulSoup
+from PIL import Image
 
 
 
 ctk.set_appearance_mode("light")
 font = ("Comic Sans MS", 14)
 
-# Main window
+""" 
+All FUNCTIONS
+"""
+
+
+class MangaListLabel:
+    def __init__(self, list_frame, name):
+        self.list_frame = list_frame
+        self.name = name
+        self.frame = ctk.CTkFrame(self.list_frame)
+        self.frame.configure(
+            border_width=1.5,
+            border_color="black",
+            fg_color="white"
+        )
+        self.frame.pack(fill="x", pady=4)
+
+        self.label = ctk.CTkLabel(self.frame, text=self.name, font=font)
+        self.label.pack(side="left", padx=5, pady=5)
+
+        self.remove_button = ctk.CTkButton(self.frame)
+        self.remove_button.configure(
+            text="Remove",
+            width=60,         
+            font=font,
+            fg_color="white",
+            text_color="black",
+            border_color="black",
+            border_width=1.5,
+            hover_color="light grey",
+            command=self.remove
+        )
+        self.remove_button.pack(side="right", padx=5)
+
+    def remove(self):
+        self.frame.destroy()
+        names = []
+        with open("manga_list.csv","r") as f:
+            for row in DictReader(f):                        
+                if row["name"] != self.name:
+                    names.append(row["name"])
+
+        with open("manga_list.csv","w",newline="") as f:
+            writer = DictWriter(f, ["name"])
+            writer.writeheader()
+            for name in names:
+                writer.writerow({"name": name})
+
+# Function to add manga
+def add_manga():
+    url = manga_entry.get().strip()
+
+    try:
+        reqs = requests.get(url).text
+    except requests.exceptions.MissingSchema:
+        show_notifications("Invalid URL!")
+        return
+    html = BeautifulSoup(reqs, 'html.parser')  # type: ignore
+    title = html.find("title").get_text().strip().split(" |") # type: ignore
+    with open("manga_list.csv","a",newline="") as f:
+        writer = DictWriter(f, ["name"])
+        writer.writerow({"name": title[0]})
+    MangaListLabel(manga_list_frame,title[0])
+    manga_entry.delete(0,"end")
+
+# Display manga in the scrollable frame
+def display_manga():
+    with open("manga_list.csv","r") as f:
+        rows = list(DictReader(f))
+        names = []
+        for row in rows:
+            names.append(row["name"])
+    for name in names:
+        MangaListLabel(manga_list_frame, name)
+
+def show_notifications(text):
+    warning_img = ctk.CTkImage(light_image=Image.open("images/warning.png"))
+                             
+    notification_frame = ctk.CTkFrame(app)
+    notification_frame.configure(
+            border_width=1.5,
+            border_color="black",
+            fg_color="white"
+        )
+    notification_frame.place(x=10,y=10)
+    notification_label = ctk.CTkLabel(notification_frame)
+    notification_label.configure(
+                                text=f"  {text}",
+                                fg_color="transparent",
+                                text_color="black",          
+                                font=font,
+                                image=warning_img,
+                                compound="left"                               
+                                )
+    notification_label.pack(padx=10, pady=5)
+    notification_frame.after(3000, lambda: notification_frame.destroy())
+
+
+""" 
+APP GUI CODE
+"""
+# Main Window
 app = ctk.CTk()
 app.title("Manga Notifier")
 app.configure(fg_color="white")
@@ -52,8 +156,8 @@ manga_entry.configure(placeholder_text="Enter manga link here",
 manga_entry.pack(side="left", expand=True, fill="x", padx=(0, 5))
 
 # Scrollable frame for manga list
-manga_list = ctk.CTkScrollableFrame(manga_tab)
-manga_list.configure(
+manga_list_frame = ctk.CTkScrollableFrame(manga_tab)
+manga_list_frame.configure(
     fg_color="transparent",
     border_width=1.5,
     border_color="black",
@@ -62,66 +166,9 @@ manga_list.configure(
     scrollbar_button_hover_color="grey",
 
 )
-manga_list.pack(expand=True, fill="both", pady=1, padx=110)
+manga_list_frame.pack(expand=True, fill="both", pady=1, padx=110)
 
-
-
-# Class for manga
-class MangaListLabel:
-    def __init__(self, list_frame, name):
-        self.list_frame = list_frame
-        self.name = name
-        self.frame = ctk.CTkFrame(self.list_frame)
-        self.frame.configure(
-            border_width=1.5,
-            border_color="black",
-            fg_color="white"
-        )
-        self.frame.pack(fill="x", pady=4)
-
-        self.label = ctk.CTkLabel(self.frame, text=self.name, font=font)
-        self.label.pack(side="left", padx=5, pady=5)
-
-        self.remove_button = ctk.CTkButton(self.frame)
-        self.remove_button.configure(
-            text="Remove",
-            width=60,         
-            font=font,
-            fg_color="white",
-            text_color="black",
-            border_color="black",
-            border_width=1.5,
-            hover_color="light grey",
-            command=self.remove
-        )
-        self.remove_button.pack(side="right", padx=5)
-
-    def remove(self):
-        self.frame.destroy()
-        print(f"{self.name} has been removed")
-        names = []
-        with open("manga_list.csv","r") as f:
-            for row in DictReader(f):                        
-                if row["name"] != self.name:
-                    names.append(row["name"])
-
-        with open("manga_list.csv","w",newline="") as f:
-            writer = DictWriter(f, ["name"])
-            writer.writeheader()
-            for name in names:
-                writer.writerow({"name": name})
-
-
-# Function to add manga
-def add_manga():
-    name = manga_entry.get().strip()
-    if name:
-        with open("manga_list.csv","a",newline="") as f:
-            writer = DictWriter(f, ["name"])
-            writer.writerow({"name": name})
-        manga_entry.delete(0, "end")
-        MangaListLabel(manga_list, name)
-
+display_manga()
 
 
 add_button = ctk.CTkButton(manga_entry_frame, text="Add", command=add_manga)
@@ -136,20 +183,9 @@ add_button.configure(font=font,
                      )
 add_button.pack(side="right")
 
-def display_manga():
-    with open("manga_list.csv","r") as f:
-        rows = list(DictReader(f))
-        names = []
-        for row in rows:
-            names.append(row["name"])
-    for name in names:
-        MangaListLabel(manga_list, name)
-
-display_manga()
 
 notifications_tab = tabs.add("Notifications")
 notifications_tab.configure()
 
 # Run the app
 app.mainloop()
-
