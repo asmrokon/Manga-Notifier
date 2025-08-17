@@ -25,19 +25,21 @@ All FUNCTIONS
 # Function to add manga
 def add_manga():
     url = manga_entry.get().strip()
-
     try:
         reqs = requests.get(url).text
     except requests.exceptions.MissingSchema:
-        send_in_app_notifications("Invalid URL!")
         return
     html = BeautifulSoup(reqs, 'html.parser')  # type: ignore
-    title = html.find("title").get_text().strip().split(" |") # type: ignore
-    with open(str(Path("manga_list.csv").resolve()),"a",newline="") as f:
-        writer = DictWriter(f, ["name"])
-        writer.writerow({"name": title[0]})
-    MangaListLabel(manga_list_frame,title[0])
-    manga_entry.delete(0,"end")
+    manga_title, garbages = html.find("title").get_text().strip().split(" |") # type: ignore
+    if "(" in manga_title:
+        name, again_garbages = manga_title.split("(")
+        with open(str(Path("manga_list.csv").resolve()),"a",newline="") as f:
+            writer = DictWriter(f, ["name"])
+            writer.writerow({"name": name.strip()})  # type: ignore
+    else:
+        with open(str(Path("manga_list.csv").resolve()),"a",newline="") as f:
+            writer = DictWriter(f, ["name"])
+            writer.writerow({"name": manga_title.strip()})  # type: ignore
 
 # Display manga in the scrollable frame
 def display_manga():
