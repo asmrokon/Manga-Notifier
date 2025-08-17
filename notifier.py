@@ -33,17 +33,22 @@ def add_manga():
     manga_title, garbages = html.find("title").get_text().strip().split(" |") # type: ignore
     if "(" in manga_title:
         name, again_garbages = manga_title.split("(")
-        with open(str(Path("manga_list.csv").resolve()),"a",newline="") as f:
+        with open(str(Path("csv_files/manga_list.csv").resolve()),"a",newline="") as f:
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": name.strip()})  # type: ignore
+        MangaListLabel(manga_list_frame,name)
+        manga_entry.delete(0,"end")
     else:
-        with open(str(Path("manga_list.csv").resolve()),"a",newline="") as f:
+        with open(str(Path("csv_files/manga_list.csv").resolve()),"a",newline="") as f:
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": manga_title.strip()})  # type: ignore
+        MangaListLabel(manga_list_frame,manga_title[0])
+        manga_entry.delete(0,"end")
+
 
 # Display manga in the scrollable frame
 def display_manga():
-    with open(str(Path("manga_list.csv").resolve()),"r") as f:
+    with open(str(Path("csv_files/manga_list.csv").resolve()),"r") as f:
         rows = list(DictReader(f))
     for row in rows:
         MangaListLabel(manga_list_frame, row["name"])
@@ -72,7 +77,7 @@ def send_in_app_notifications(text):
     notification_frame.after(3000, lambda: notification_frame.destroy())
 
 def display_notifications():
-    with open(str(Path("notifications.csv").resolve()),"r") as f:
+    with open(str(Path("csv_files/notifications.csv").resolve()),"r") as f:
         rows = list(DictReader(f))
     for row in rows[::-1]:
         NotificationLabel(notifications_list_frame,row["name"],row["last_alerted"])
@@ -86,14 +91,14 @@ def check_manga():
     html = parse("https://www.mangaupdates.com/rss")
     time = datetime.now().strftime("%H:%M %d %B")
 
-    with open(str(Path("manga_list.csv").resolve()),"r") as f:
+    with open(str(Path("csv_files/manga_list.csv").resolve()),"r") as f:
         rows = list(DictReader(f))
     for row in rows:
         if to_check(row["name"]):
-            for entry in html.entries[:5]:
+            for entry in html.entries[:8]:
                 if row["name"].lower() in str(entry.title).lower():
                     send_notification(row["name"])
-                    with open(str(Path("notifications.csv").resolve()),"a",newline="") as f:
+                    with open(str(Path("csv_files/notifications.csv").resolve()),"a",newline="") as f:
                         writer = DictWriter(f,["name","last_alerted"])
                         writer.writerow({"name": row["name"],"last_alerted": time})
                         NotificationLabel(notifications_list_frame,row["name"],time)
@@ -112,7 +117,7 @@ def send_notification(name):
 
 
 def to_check(name):
-    with open(str(Path("notifications.csv").resolve()),"r") as f:
+    with open(str(Path("csv_files/notifications.csv").resolve()),"r") as f:
         rows = list(DictReader(f))
         notification_names = []
     for row in rows:
@@ -246,12 +251,12 @@ class MangaListLabel:
     def remove(self):
         self.frame.destroy()
         names = []
-        with open(str(Path("manga_list.csv").resolve()),"r") as f:
+        with open(str(Path("csv_files/manga_list.csv").resolve()),"r") as f:
             for row in DictReader(f):                        
                 if row["name"] != self.name:
                     names.append(row["name"])
 
-        with open(str(Path("manga_list.csv").resolve()),"w",newline="") as f:
+        with open(str(Path("csv_files/manga_list.csv").resolve()),"w",newline="") as f:
             writer = DictWriter(f, ["name"])
             writer.writeheader()
             for name in names:
@@ -280,7 +285,7 @@ add_button.pack(side="right")
 notifications_tab = tabs.add("Notifications")
 notifications_tab.configure()
 
-tabs.set("Notifications")
+tabs.set("Manga List")
 
 clear_notification_button = ctk.CTkButton(notifications_tab)
 clear_notification_button.configure(
@@ -341,7 +346,7 @@ class NotificationLabel:
 
 display_notifications()
 
-app.after(0, check_manga)
+app.after(30000, check_manga)
 
 # Run the app
 app.mainloop()
