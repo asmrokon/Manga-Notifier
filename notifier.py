@@ -1,4 +1,5 @@
 from csv import DictWriter, DictReader
+from pathlib import Path
 
 import customtkinter as ctk
 import requests
@@ -24,11 +25,11 @@ def add_manga():
     try:
         reqs = requests.get(url).text
     except requests.exceptions.MissingSchema:
-        show_notifications("Invalid URL!")
+        send_in_app_notifications("Invalid URL!")
         return
     html = BeautifulSoup(reqs, 'html.parser')  # type: ignore
     title = html.find("title").get_text().strip().split(" |") # type: ignore
-    with open("manga_list.csv","a",newline="") as f:
+    with open(str(Path("manga_list.csv").resolve()),"a",newline="") as f:
         writer = DictWriter(f, ["name"])
         writer.writerow({"name": title[0]})
     MangaListLabel(manga_list_frame,title[0])
@@ -36,13 +37,13 @@ def add_manga():
 
 # Display manga in the scrollable frame
 def display_manga():
-    with open("manga_list.csv","r") as f:
+    with open(str(Path("manga_list.csv").resolve()),"r") as f:
         rows = list(DictReader(f))
     for row in rows:
         MangaListLabel(manga_list_frame, row["name"])
 
 
-def show_notifications(text):
+def send_in_app_notifications(text):
     warning_img = ctk.CTkImage(light_image=Image.open("images/warning.png"))
                              
     notification_frame = ctk.CTkFrame(app)
@@ -65,7 +66,7 @@ def show_notifications(text):
     notification_frame.after(3000, lambda: notification_frame.destroy())
 
 def display_notifications():
-    with open("notifications.csv","r") as f:
+    with open(str(Path("notifications.csv").resolve()),"r") as f:
         rows = list(DictReader(f))
     for row in rows[::-1]:
         NotificationLabel(notifications_list_frame,row["name"],row["time"])
@@ -167,12 +168,12 @@ class MangaListLabel:
     def remove(self):
         self.frame.destroy()
         names = []
-        with open("manga_list.csv","r") as f:
+        with open(str(Path("manga_list.csv").resolve()),"r") as f:
             for row in DictReader(f):                        
                 if row["name"] != self.name:
                     names.append(row["name"])
 
-        with open("manga_list.csv","w",newline="") as f:
+        with open(str(Path("manga_list.csv").resolve()),"w",newline="") as f:
             writer = DictWriter(f, ["name"])
             writer.writeheader()
             for name in names:
