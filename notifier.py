@@ -38,11 +38,9 @@ def add_manga():
 def display_manga():
     with open("manga_list.csv","r") as f:
         rows = list(DictReader(f))
-        names = []
-        for row in rows:
-            names.append(row["name"])
-    for name in names:
-        MangaListLabel(manga_list_frame, name)
+    for row in rows:
+        MangaListLabel(manga_list_frame, row["name"])
+
 
 def show_notifications(text):
     warning_img = ctk.CTkImage(light_image=Image.open("images/warning.png"))
@@ -69,7 +67,7 @@ def show_notifications(text):
 def display_notifications():
     with open("notifications.csv","r") as f:
         rows = list(DictReader(f))
-    for row in rows:
+    for row in rows[::-1]:
         NotificationLabel(notifications_list_frame,row["name"],row["time"])
 
 def clear_notifications():
@@ -203,6 +201,8 @@ add_button.pack(side="right")
 notifications_tab = tabs.add("Notifications")
 notifications_tab.configure()
 
+tabs.set("Notifications")
+
 clear_notification_button = ctk.CTkButton(notifications_tab)
 clear_notification_button.configure(
             text="Clear All Notifications",
@@ -253,9 +253,14 @@ class NotificationLabel:
         )
         self.label.pack(side="left", padx=5, pady=5)
 
+        self.time_label = ctk.CTkLabel(self.frame)
+        self.time_label.configure(
+            text=self.time,
+            font=("Comic Sans MS", 13)
+        )
+        self.time_label.pack(side="right",padx=10, pady=5)
 
 display_notifications()
-
 
 
 # Run the app
