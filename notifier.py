@@ -28,6 +28,12 @@ def add_manga():
     if url == "":
         send_in_app_notifications("Enter a link before pressing Add.","warning.png")
         return
+    if "myanimelist.net" not in url:
+        send_in_app_notifications("Error: Please enter a valid MyAnimeList manga link.","warning.png")
+        return
+    if "manga" not in url:
+        send_in_app_notifications("Error: Please enter a valid MyAnimeList manga link.","warning.png")
+        return
     try:
         reqs = requests.get(url).text
     except requests.exceptions.MissingSchema:
@@ -50,7 +56,7 @@ def add_manga():
         with open(str(Path("csv_files/manga_list.csv").resolve()),"a",newline="") as f:
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": manga_title.strip()})  # type: ignore
-        MangaListLabel(manga_list_frame,manga_title[0])
+        MangaListLabel(manga_list_frame,manga_title)
         manga_entry.delete(0,"end")
         send_in_app_notifications("New Manga Added!","plus.png")
 
