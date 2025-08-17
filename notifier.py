@@ -1,10 +1,14 @@
 from csv import DictWriter, DictReader
 from pathlib import Path
+from datetime import datetime
+import re
 
 import customtkinter as ctk
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
+from feedparser import parse
+from winotify import Notification, audio
 
 
 
@@ -69,10 +73,82 @@ def display_notifications():
     with open(str(Path("notifications.csv").resolve()),"r") as f:
         rows = list(DictReader(f))
     for row in rows[::-1]:
-        NotificationLabel(notifications_list_frame,row["name"],row["time"])
+        NotificationLabel(notifications_list_frame,row["name"],row["last_alerted"])
 
 def clear_notifications():
     print("Cleared")
+
+
+# Check Manga feed after every 3 minutes
+def check_manga():
+    html = parse("https://www.mangaupdates.com/rss")
+    time = datetime.now().strftime("%H:%M %d %B")
+
+    with open(str(Path("manga_list.csv").resolve()),"r") as f:
+        rows = list(DictReader(f))
+    for row in rows:
+        if to_check(row["name"]):
+            for entry in html.entries[:5]:
+                if row["name"].lower() in str(entry.title).lower():
+                    send_notification(row["name"])
+                    with open(str(Path("notifications.csv").resolve()),"a",newline="") as f:
+                        writer = DictWriter(f,["name","last_alerted"])
+                        writer.writerow({"name": row["name"],"last_alerted": time})
+                        NotificationLabel(notifications_list_frame,row["name"],time)
+    app.after(60000, check_manga)
+    
+def send_notification(name):
+    toast = Notification(app_id="Manga Notifier",
+                        title=f"New {name} Chapter Released!",
+                        msg=f"{name} just dropped a new chapter! Time to read!",
+                        duration="long",
+                        icon=str(Path("images/logo_transparent.png").resolve())
+                        )
+    toast.set_audio(audio.Reminder, loop=False)
+    toast.show()
+
+
+
+def to_check(name):
+    with open(str(Path("notifications.csv").resolve()),"r") as f:
+        rows = list(DictReader(f))
+        notification_names = []
+    for row in rows:
+        notification_names.append(row["name"].lower())
+    if name.lower() in notification_names:
+        for row in rows[::-1]:
+            if name.lower() == row["name"].lower():
+                last_alerted = re.search(r'(?P<hour>\d{1,2}):(?P<min>\d{1,2})\s+(?P<date>\d{1,2})\s+(?P<month>[A-Za-z]+)', row["last_alerted"])
+                if last_alerted:
+                    diff = time_difference(2025,last_alerted.group("month"),last_alerted.group("date"),last_alerted.group("hour"),last_alerted.group("min"))
+                    if diff > 2:
+                        return True
+                    else:
+                        return False
+    else:
+        return True
+
+def time_difference(last_year,last_month,last_date,last_hour,last_min):
+    months = {
+        "january": 1,
+        "february": 2,
+        "march": 3,
+        "april": 4,
+        "may": 5,
+        "june": 6,
+        "july": 7,
+        "august": 8,
+        "september": 9,
+        "october": 10,
+        "november": 11,
+        "december": 12
+            }
+
+    last_alerted_time = datetime(int(last_year), months[f"{last_month.lower()}"], int(last_date), int(last_hour), int(last_min))        
+    now  = datetime.now()                         
+    duration = now - last_alerted_time                                                 
+    return duration.days
+
 
 
 """ 
@@ -263,6 +339,7 @@ class NotificationLabel:
 
 display_notifications()
 
+app.after(0, check_manga)
 
 # Run the app
 app.mainloop()
