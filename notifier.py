@@ -25,9 +25,16 @@ All FUNCTIONS
 # Function to add manga
 def add_manga():
     url = manga_entry.get().strip()
+    if url == "":
+        send_in_app_notifications("Enter a link before pressing Add.","warning.png")
+        return
     try:
         reqs = requests.get(url).text
     except requests.exceptions.MissingSchema:
+        send_in_app_notifications("Failed: URL is Invalid","warning.png")
+        return
+    except requests.exceptions.ConnectionError:
+        send_in_app_notifications("Could not fetch – check your connection.","warning.png")
         return
     html = BeautifulSoup(reqs, 'html.parser')  # type: ignore
     manga_title, garbages = html.find("title").get_text().strip().split(" |") # type: ignore
@@ -38,12 +45,14 @@ def add_manga():
             writer.writerow({"name": name.strip()})  # type: ignore
         MangaListLabel(manga_list_frame,name)
         manga_entry.delete(0,"end")
+        send_in_app_notifications("New Manga Added!","plus.png")
     else:
         with open(str(Path("csv_files/manga_list.csv").resolve()),"a",newline="") as f:
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": manga_title.strip()})  # type: ignore
         MangaListLabel(manga_list_frame,manga_title[0])
         manga_entry.delete(0,"end")
+        send_in_app_notifications("New Manga Added!","plus.png")
 
 
 # Display manga in the scrollable frame
@@ -54,9 +63,7 @@ def display_manga():
         MangaListLabel(manga_list_frame, row["name"])
 
 
-def send_in_app_notifications(text):
-    warning_img = ctk.CTkImage(light_image=Image.open(str(Path("images/warning.png").resolve())))
-                             
+def send_in_app_notifications(text,image):
     notification_frame = ctk.CTkFrame(app)
     notification_frame.configure(
             border_width=1.5,
@@ -70,7 +77,7 @@ def send_in_app_notifications(text):
                                 fg_color="transparent",
                                 text_color="black",          
                                 font=font,
-                                image=warning_img,
+                                image=ctk.CTkImage(Image.open(str(Path(f"images/{image}").resolve()))),
                                 compound="left"                               
                                 )
     notification_label.pack(padx=10, pady=5)
@@ -88,6 +95,7 @@ def clear_notifications():
         writer.writeheader()
     for widget in notifications_list_frame.winfo_children():
         widget.destroy()
+    send_in_app_notifications("Cleared!","success.png")
 
 
 # Check Manga feed after every 3 minutes
@@ -199,7 +207,7 @@ manga_entry_frame.configure(fg_color="white")
 manga_entry_frame.pack(fill="x", pady=(30,10), padx=110)
 
 manga_entry = ctk.CTkEntry(manga_entry_frame)
-manga_entry.configure(placeholder_text="Enter manga link here",
+manga_entry.configure(placeholder_text="Enter MyAnimeList manga URL",
                       font=font,
                       fg_color="white",
                       border_color="black",
@@ -265,6 +273,7 @@ class MangaListLabel:
             writer.writeheader()
             for name in names:
                 writer.writerow({"name": name})
+        send_in_app_notifications(f"{self.name} has been removed from your list","trash.png")
 
 
 display_manga()
@@ -304,7 +313,7 @@ clear_notification_button.configure(
             height=45,
             corner_radius=13,
             command=clear_notifications,
-            image=ctk.CTkImage(light_image=Image.open(str(Path("images/trash.png").resolve()))),
+            image=ctk.CTkImage(Image.open(str(Path("images/trash.png").resolve()))),
             compound="left"
 )
 
