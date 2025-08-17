@@ -55,7 +55,7 @@ def display_manga():
 
 
 def send_in_app_notifications(text):
-    warning_img = ctk.CTkImage(light_image=Image.open("images/warning.png"))
+    warning_img = ctk.CTkImage(light_image=Image.open(str(Path("images/warning.png").resolve())))
                              
     notification_frame = ctk.CTkFrame(app)
     notification_frame.configure(
@@ -83,7 +83,11 @@ def display_notifications():
         NotificationLabel(notifications_list_frame,row["name"],row["last_alerted"])
 
 def clear_notifications():
-    print("Cleared")
+    with open(str(Path("csv_files/notifications.csv").resolve()),"w",newline="") as f:
+        writer = DictWriter(f,["name","last_alerted"])
+        writer.writeheader()
+    for widget in notifications_list_frame.winfo_children():
+        widget.destroy()
 
 
 # Check Manga feed after every 3 minutes
@@ -299,10 +303,12 @@ clear_notification_button.configure(
             hover_color="light grey",
             height=45,
             corner_radius=13,
-            command=clear_notifications
+            command=clear_notifications,
+            image=ctk.CTkImage(light_image=Image.open(str(Path("images/trash.png").resolve()))),
+            compound="left"
 )
 
-clear_notification_button.place(x=10,y=0)
+clear_notification_button.pack(fill="x",pady=(10,10), padx=110,side="bottom")
 
 notifications_list_frame = ctk.CTkScrollableFrame(notifications_tab)
 notifications_list_frame.configure(
@@ -314,7 +320,7 @@ notifications_list_frame.configure(
     scrollbar_button_hover_color="grey",
 
 )
-notifications_list_frame.pack(expand=True, fill="both", pady=(50,0), padx=110)    
+notifications_list_frame.pack(expand=True, fill="both", pady=(30,0), padx=110)    
 
 class NotificationLabel:
     def __init__(self,list_frame, name, time):
