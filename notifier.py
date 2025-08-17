@@ -2,15 +2,18 @@ from csv import DictWriter, DictReader
 from pathlib import Path
 from datetime import datetime
 import re
+from tkinter import PhotoImage
+from ctypes import windll
 
 import customtkinter as ctk
 import requests
 from bs4 import BeautifulSoup
-from PIL import Image
+from PIL import Image, ImageTk
 from feedparser import parse
 from winotify import Notification, audio
 
 
+windll.shell32.SetCurrentProcessExplicitAppUserModelID(u'manga_notifier.1')
 
 ctk.set_appearance_mode("light")
 font = ("Comic Sans MS", 14)
@@ -183,6 +186,7 @@ APP GUI CODE
 app = ctk.CTk()
 app.title("Manga Notifier")
 app.configure(fg_color="white")
+app.iconbitmap(str(Path("images/logo_transparent.ico").resolve()))
 app.geometry("700x300")
 
 
