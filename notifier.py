@@ -2,13 +2,12 @@ from csv import DictWriter, DictReader
 from pathlib import Path
 from datetime import datetime
 import re
-from tkinter import PhotoImage
 from ctypes import windll
 
 import customtkinter as ctk
 import requests
 from bs4 import BeautifulSoup
-from PIL import Image, ImageTk
+from PIL import Image
 from feedparser import parse
 from winotify import Notification, audio
 
@@ -50,6 +49,9 @@ def add_manga():
     if "(" in manga_title:
         name, again_garbages = manga_title.split("(")
         with open(str(Path("csv_files/manga_list.csv").resolve()),"a",newline="") as f:
+            if check(name,"manga_list"):
+                send_in_app_notifications(f"{name} already in the list","warning.png")
+                return        
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": name.strip()})  # type: ignore
         MangaListLabel(manga_list_frame,name)
@@ -57,6 +59,9 @@ def add_manga():
         send_in_app_notifications("New Manga Added!","plus.png")
     else:
         with open(str(Path("csv_files/manga_list.csv").resolve()),"a",newline="") as f:
+            if check(manga_title,"manga_list"):
+                send_in_app_notifications(f"{manga_title} already in the list","warning.png")
+                return
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": manga_title.strip()})  # type: ignore
         MangaListLabel(manga_list_frame,manga_title)
@@ -115,7 +120,7 @@ def check_manga():
     with open(str(Path("csv_files/manga_list.csv").resolve()),"r") as f:
         rows = list(DictReader(f))
     for row in rows:
-        if to_check(row["name"]):
+        if check(row["name"],"notification"):
             for entry in html.entries[:8]:
                 if row["name"].lower() in str(entry.title).lower():
                     send_notification(row["name"])
@@ -137,24 +142,34 @@ def send_notification(name):
 
 
 
-def to_check(name):
-    with open(str(Path("csv_files/notifications.csv").resolve()),"r") as f:
-        rows = list(DictReader(f))
-        notification_names = []
-    for row in rows:
-        notification_names.append(row["name"].lower())
-    if name.lower() in notification_names:
-        for row in rows[::-1]:
-            if name.lower() == row["name"].lower():
-                last_alerted = re.search(r'(?P<hour>\d{1,2}):(?P<min>\d{1,2})\s+(?P<date>\d{1,2})\s+(?P<month>[A-Za-z]+)', row["last_alerted"])
-                if last_alerted:
-                    diff = time_difference(2025,last_alerted.group("month"),last_alerted.group("date"),last_alerted.group("hour"),last_alerted.group("min"))
-                    if diff > 2:
-                        return True
-                    else:
-                        return False
-    else:
-        return True
+def check(name,mode):
+    if mode.lower() == "notification":
+        with open(str(Path("csv_files/notifications.csv").resolve()),"r") as f:
+            rows = list(DictReader(f))
+            notification_names = []
+        for row in rows:
+            notification_names.append(row["name"].lower())
+        if name.lower() in notification_names:
+            for row in rows[::-1]:
+                if name.lower() == row["name"].lower():
+                    last_alerted = re.search(r'(?P<hour>\d{1,2}):(?P<min>\d{1,2})\s+(?P<date>\d{1,2})\s+(?P<month>[A-Za-z]+)', row["last_alerted"])
+                    if last_alerted:
+                        diff = time_difference(2025,last_alerted.group("month"),last_alerted.group("date"),last_alerted.group("hour"),last_alerted.group("min"))
+                        if diff > 2:
+                            return True
+                        else:
+                            return False
+        else:
+            return True
+    elif mode.lower() == "manga_list":
+        with open(str(Path("csv_files/manga_list.csv").resolve()),"r") as f:
+            names = []
+            for row in list(DictReader(f)):
+                names.append(row["name"])
+        if name in names:
+            return True
+        else:
+            return False
 
 def time_difference(last_year,last_month,last_date,last_hour,last_min):
     months = {
