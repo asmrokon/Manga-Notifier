@@ -30,11 +30,11 @@ def add_manga():
     if url == "":
         send_in_app_notifications("Enter a link before pressing Add.","warning.png")
         return
-    if "myanimelist.net" and "mangaupdates.com" not in url:
-        send_in_app_notifications("Error: Please enter a valid link.","warning.png")
+    if "myanimelist.net" not in url and "mangaupdates.com" not in url:
+        send_in_app_notifications("Error: Please enter a valid site link.","warning.png")
         return
-    if "manga" and "series" not in url:
-        send_in_app_notifications("Error: Please enter a valid link.","warning.png")
+    if "manga" not in url and "series" not in url:
+        send_in_app_notifications("Error: Please enter a valid manga link.","warning.png")
         return
     
     try:
