@@ -30,12 +30,13 @@ def add_manga():
     if url == "":
         send_in_app_notifications("Enter a link before pressing Add.","warning.png")
         return
-    if "myanimelist.net" not in url:
-        send_in_app_notifications("Error: Please enter a valid MyAnimeList manga link.","warning.png")
+    if "myanimelist.net" and "mangaupdates.com" not in url:
+        send_in_app_notifications("Error: Please enter a valid link.","warning.png")
         return
-    if "manga" not in url:
-        send_in_app_notifications("Error: Please enter a valid MyAnimeList manga link.","warning.png")
+    if "manga" and "series" not in url:
+        send_in_app_notifications("Error: Please enter a valid link.","warning.png")
         return
+    
     try:
         reqs = requests.get(url).text
     except requests.exceptions.MissingSchema:
@@ -44,12 +45,25 @@ def add_manga():
     except requests.exceptions.ConnectionError:
         send_in_app_notifications("Could not fetch – check your connection.","warning.png")
         return
+        
+    
     html = BeautifulSoup(reqs, 'html.parser')  # type: ignore
-    manga_title, garbages = html.find("title").get_text().strip().split(" |") # type: ignore
-    if "(" in manga_title:
-        name, again_garbages = manga_title.split("(")
+    if "myanimelist.net" in url:
+        try: 
+            manga_title, garbages = html.find("title").get_text().strip().split(" |") # type: ignore
+        except ValueError:
+            send_in_app_notifications("Could not get manga title. Please check the link.","warning.png")
+            return
+    elif "mangaupdates.com" in url:
+        try:
+            manga_title, garbages = html.find("title").get_text().strip().split("- MangaUpdates") # type: ignore
+        except ValueError:
+            send_in_app_notifications("Could not get manga title. Please check the link.","warning.png")
+            return
+    if "(" in manga_title:      # type: ignore
+        name, again_garbages = manga_title.split("(")       # type: ignore
         with open(str(Path("csv_files/manga_list.csv").resolve()),"a",newline="") as f:
-            if check(name,"manga_list"):
+            if check(name.strip(),"manga_list"):
                 send_in_app_notifications(f"{name} already in the list","warning.png")
                 return        
             writer = DictWriter(f, ["name"])
@@ -59,12 +73,12 @@ def add_manga():
         send_in_app_notifications("New Manga Added!","plus.png")
     else:
         with open(str(Path("csv_files/manga_list.csv").resolve()),"a",newline="") as f:
-            if check(manga_title,"manga_list"):
-                send_in_app_notifications(f"{manga_title} already in the list","warning.png")
+            if check(manga_title.strip(),"manga_list"):     # type: ignore
+                send_in_app_notifications(f"{manga_title} already in the list","warning.png")       # type: ignore
                 return
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": manga_title.strip()})  # type: ignore
-        MangaListLabel(manga_list_frame,manga_title)
+        MangaListLabel(manga_list_frame,manga_title.strip())        # type: ignore
         manga_entry.delete(0,"end")
         send_in_app_notifications("New Manga Added!","plus.png")
 
@@ -121,7 +135,7 @@ def check_manga():
         rows = list(DictReader(f))
     for row in rows:
         if check(row["name"],"notification"):
-            for entry in html.entries[:8]:
+            for entry in html.entries[:10]:
                 if row["name"].lower() in str(entry.title).lower():
                     send_notification(row["name"])
                     with open(str(Path("csv_files/notifications.csv").resolve()),"a",newline="") as f:
@@ -165,8 +179,8 @@ def check(name,mode):
         with open(str(Path("csv_files/manga_list.csv").resolve()),"r") as f:
             names = []
             for row in list(DictReader(f)):
-                names.append(row["name"])
-        if name in names:
+                names.append(row["name"].lower())
+        if name.lower() in names:
             return True
         else:
             return False
