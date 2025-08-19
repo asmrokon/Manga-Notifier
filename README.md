@@ -1,4 +1,6 @@
-# 📚 Manga Notifier
+> [!NOTE]
+> This application currently only works on **Windows**.
+
 ### *Never Miss Another Chapter Release!* 🔔
 
 <div align="center">
