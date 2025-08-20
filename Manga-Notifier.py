@@ -259,11 +259,61 @@ tabs.configure(
 tabs._segmented_button.configure(font=("Comic Sans MS", 16))
 tabs.pack(expand=True, fill="both", padx=0, pady=0)
 
-manga_tab = tabs.add("Manga List")
+
+
+
+# Manga Adding Tab
+manga_add_tab = tabs.add("Add Manga")
+
+# Title Entry frame
+manga_title_entry_frame = ctk.CTkFrame(manga_add_tab)
+manga_title_entry_frame.configure(border_width=0)
+manga_title_entry_frame.pack(fill="x", pady=(30, 10), padx=110)
+
+manga_title_entry = ctk.CTkEntry(manga_title_entry_frame)
+manga_title_entry.configure(
+    placeholder_text="Enter Manga name",
+    border_width=1.5,
+    corner_radius=13,
+    height=45,
+)
+manga_title_entry.pack(side="left", expand=True, fill="x", padx=(0, 5))
+
+# Scrollable frame for manga list
+manga_title_list_frame = ctk.CTkScrollableFrame(manga_add_tab)
+manga_title_list_frame.configure(
+    fg_color="transparent",
+    border_width=1.5,
+    corner_radius=13,
+    scrollbar_button_color="light grey",
+    scrollbar_button_hover_color="grey",
+)
+manga_title_list_frame.pack(expand=True, fill="both", pady=(1, 10), padx=110)
+
+
+title_add_button = ctk.CTkButton(
+    manga_title_entry_frame,
+)
+title_add_button.configure(
+    text="Add",
+    command=add_manga,
+    font=("Comic Sans MS", 15, "bold"),
+    border_width=1.5,
+    height=45,
+    width=60,
+    corner_radius=13,
+)
+title_add_button.pack(side="right")
+
+
+
+
+# Manga List Tab
+manga_list_tab = tabs.add("Manga List")
 
 
 # Entry frame
-manga_entry_frame = ctk.CTkFrame(manga_tab)
+manga_entry_frame = ctk.CTkFrame(manga_list_tab)
 manga_entry_frame.configure(border_width=0)
 manga_entry_frame.pack(fill="x", pady=(30, 10), padx=110)
 
@@ -277,7 +327,7 @@ manga_entry.configure(
 manga_entry.pack(side="left", expand=True, fill="x", padx=(0, 5))
 
 # Scrollable frame for manga list
-manga_list_frame = ctk.CTkScrollableFrame(manga_tab)
+manga_list_frame = ctk.CTkScrollableFrame(manga_list_tab)
 manga_list_frame.configure(
     fg_color="transparent",
     border_width=1.5,
@@ -352,7 +402,7 @@ add_button.pack(side="right")
 notifications_tab = tabs.add("Notifications")
 notifications_tab.configure()
 
-tabs.set("Manga List")
+tabs.set("Add Manga")
 
 clear_notification_button = ctk.CTkButton(notifications_tab)
 clear_notification_button.configure(
