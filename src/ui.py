@@ -1,23 +1,37 @@
 # Built in modules
 from csv import DictWriter, DictReader
-from pathlib import Path
+#from pathlib import Path
 from ctypes import windll
+from os import path
 
 # Third Party modules
 import customtkinter as ctk
 from PIL import Image
 
 # Functions
-from src.functions import (
+from functions import (
     extract_name_from_url,
     get_rows_from_csv,
     check_rss_feed,
 )
 
+# Path to resources folder
+BASE_DIR = path.dirname(path.dirname(__file__))
+RESOURCES_DIR = path.join(BASE_DIR, "resources")
+
+manga_list_csv_path = path.join(RESOURCES_DIR, "csv_files", "manga_list.csv")
+notifications_csv_path = path.join(RESOURCES_DIR, "csv_files", "notifications.csv")
+theme_path = path.join(RESOURCES_DIR, "themes", "dark_theme.json")
+warning_img_path = path.join(RESOURCES_DIR, "images", "warning.png")
+trash_img_path = path.join(RESOURCES_DIR, "images", "trash.png")
+success_img_path = path.join(RESOURCES_DIR, "images", "success.png")
+plus_img_path = path.join(RESOURCES_DIR, "images", "plus.png")
+logo_ico_path = path.join(RESOURCES_DIR, "images", "logo_transparent.ico")
+
 
 windll.shell32.SetCurrentProcessExplicitAppUserModelID("manga_notifier.1")
 
-ctk.set_default_color_theme("themes/dark_theme.json")
+ctk.set_default_color_theme(theme_path)
 ctk.set_appearance_mode("dark")
 font = ("Comic Sans MS", 14)
 
@@ -50,7 +64,7 @@ def run_app():
             text=f"  {text}",
             fg_color="transparent",
             font=font,
-            image=ctk.CTkImage(Image.open(str(Path(f"images/{image}").resolve()))),
+            image=ctk.CTkImage(Image.open(path.join(RESOURCES_DIR, "images", f"{image}"))),
             compound="left",
         )
         notification_label.pack(padx=10, pady=5)
@@ -65,7 +79,7 @@ def run_app():
 
     def clear_notifications():
         with open(
-            str(Path("csv_files/notifications.csv").resolve()), "w", newline=""
+            notifications_csv_path, "w", newline=""
         ) as f:
             writer = DictWriter(f, ["name", "last_alerted"])
             writer.writeheader()
@@ -86,7 +100,7 @@ def run_app():
     # Main Window
     app = ctk.CTk()
     app.title("Manga Notifier")
-    app.iconbitmap(str(Path("images/logo_transparent.ico").resolve()))
+    app.iconbitmap(logo_ico_path)
     app.geometry("750x400")
 
     # Tabs
@@ -195,13 +209,13 @@ def run_app():
         def remove(self):
             self.frame.destroy()
             names = []
-            with open(str(Path("csv_files/manga_list.csv").resolve()), "r") as f:
+            with open(manga_list_csv_path, "r") as f:
                 for row in DictReader(f):
                     if row["name"] != self.name:
                         names.append(row["name"])
 
             with open(
-                str(Path("csv_files/manga_list.csv").resolve()), "w", newline=""
+                manga_list_csv_path, "w", newline=""
             ) as f:
                 writer = DictWriter(f, ["name"])
                 writer.writeheader()
@@ -242,7 +256,7 @@ def run_app():
         height=45,
         corner_radius=13,
         command=clear_notifications,
-        image=ctk.CTkImage(Image.open(str(Path("images/trash.png").resolve()))),
+        image=ctk.CTkImage(Image.open(trash_img_path)),
         compound="left",
     )
 

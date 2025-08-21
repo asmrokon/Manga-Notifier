@@ -1,12 +1,24 @@
 from datetime import datetime
 import re
-from pathlib import Path
 from csv import DictReader, DictWriter
+from os import path
 
 from feedparser import parse
 from winotify import Notification, audio
 import requests
 from bs4 import BeautifulSoup
+
+
+
+# Path to resources folder
+BASE_DIR = path.dirname(path.dirname(__file__))
+RESOURCES_DIR = path.join(BASE_DIR, "resources")
+
+manga_list_csv_path = path.join(RESOURCES_DIR, "csv_files", "manga_list.csv")
+notifications_csv_path = path.join(RESOURCES_DIR, "csv_files", "notifications.csv")
+icon_img_path = path.join(RESOURCES_DIR, "images", "logo_transparent.png")
+
+
 
 
 # Function to add manga
@@ -39,7 +51,7 @@ def extract_name_from_url(url):
     if "(" in manga_title:  # type: ignore
         name, again_garbages = manga_title.split("(")  # type: ignore
         with open(
-            str(Path("csv_files/manga_list.csv").resolve()), "a", newline=""
+            manga_list_csv_path, "a", newline=""
         ) as f:
             if check(name.strip(), "manga_list"):
                 return False, f"{name} already in the list"
@@ -49,10 +61,10 @@ def extract_name_from_url(url):
 
     else:
         with open(
-            str(Path("csv_files/manga_list.csv").resolve()), "a", newline=""
+            manga_list_csv_path, "a", newline=""
         ) as f:
             if check(manga_title.strip(), "manga_list"):  # type: ignore
-                return False, f"{name} already in the list"  # type: ignore
+                return False, f"{manga_title.strip()} already in the list"  # type: ignore
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": manga_title.strip()})  # type: ignore
         return True, manga_title.strip()  # type: ignore
@@ -60,7 +72,7 @@ def extract_name_from_url(url):
 
 # Display manga in the scrollable frame
 def get_rows_from_csv(file_name):
-    with open(str(Path(f"csv_files/{file_name}").resolve()), "r") as f:
+    with open(path.join(RESOURCES_DIR, "csv_files", f"{file_name}"), "r") as f:
         rows = list(DictReader(f))
         return rows
 
@@ -77,7 +89,7 @@ def check_rss_feed():
                 if row["name"].lower() in str(entry.title).lower():
                     send_notification(row["name"])
                     with open(
-                        str(Path("csv_files/notifications.csv").resolve()),
+                        notifications_csv_path,
                         "a",
                         newline="",
                     ) as f:
@@ -94,7 +106,7 @@ def send_notification(name):
         title=f"New {name} Chapter Released!",
         msg=f"{name} just dropped a new chapter! Time to read!",
         duration="long",
-        icon=str(Path("images/logo_transparent.png").resolve()),
+        icon=icon_img_path,
     )
     toast.set_audio(audio.Reminder, loop=False)
     toast.show()
@@ -102,7 +114,7 @@ def send_notification(name):
 
 def check(name, mode):
     if mode.lower() == "notification":
-        with open(str(Path("csv_files/notifications.csv").resolve()), "r") as f:
+        with open(notifications_csv_path, "r") as f:
             rows = list(DictReader(f))
             notification_names = []
         for row in rows:
@@ -129,7 +141,7 @@ def check(name, mode):
         else:
             return True
     elif mode.lower() == "manga_list":
-        with open(str(Path("csv_files/manga_list.csv").resolve()), "r") as f:
+        with open(manga_list_csv_path, "r") as f:
             names = []
             for row in list(DictReader(f)):
                 names.append(row["name"].lower())
