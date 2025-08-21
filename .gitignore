@@ -1,0 +1,21 @@
+# Ignore all __pycache__ folders
+**/__pycache__/
+
+# Ignore build and dist folders
+build/
+dist/
+
+# Ignore Python files
+csv_test.py
+malapi.py
+mdex.py
+tempCodeRunnerFile.py
+test.py
+
+# Ignore csv files
+*_test.csv
+
+# Ignore Other files
+Manga-Notifier.spec
+notifier.spec
+ss.text
