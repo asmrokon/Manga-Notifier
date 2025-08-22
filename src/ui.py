@@ -1,6 +1,6 @@
 # Built in modules
 from csv import DictWriter, DictReader
-#from pathlib import Path
+# from pathlib import Path
 from ctypes import windll
 from os import path
 
@@ -28,6 +28,8 @@ trash_img_path = path.join(RESOURCES_DIR, "images", "trash.png")
 success_img_path = path.join(RESOURCES_DIR, "images", "success.png")
 plus_img_path = path.join(RESOURCES_DIR, "images", "plus.png")
 logo_ico_path = path.join(RESOURCES_DIR, "images", "logo_transparent.ico")
+
+one_piece_cover_path = path.join(RESOURCES_DIR, "images","1onepiece.jpg")
 
 
 windll.shell32.SetCurrentProcessExplicitAppUserModelID("manga_notifier.1")
@@ -97,9 +99,90 @@ def run_app():
 
     def search_manga():
         title = search_entry.get().strip()
-        
+
+        # creates Searching... textbox
+        searching_label = ctk.CTkLabel(search_result_frame, text="Searching...", fg_color="transparent", padx=20)
+        searching_label.pack()
+        app.update_idletasks()
+
         # returns a list of title, authors, artists, latest_chapter, description, cover_url of 10 mangas
         manga_list = get_manga_data(title)
+
+        # deletes searching_label
+        searching_label.destroy()
+
+        # shows search result
+        create_result_entry(manga_list)
+
+    # creates search result
+    def create_result_entry(manga_list):
+        # deletes old search result
+        for _ in search_result_frame.winfo_children():
+            _.destroy
+
+        # creates frame for each manga
+        for manga in manga_list:
+            create_result_frame(manga)
+
+    # creates frame for each manga inside search result scrollable frame
+    def create_result_frame(manga):
+        description = manga["description"]
+        if len(description) > 450:
+            description = f"{manga["description"][:450]}..." 
+
+
+        result_frame = ctk.CTkFrame(search_result_frame)
+        result_frame.pack(fill="x", padx=10, pady=10,)
+
+        # text frame that will contain all texts
+        text_frame = ctk.CTkFrame(result_frame)
+        text_frame.configure(
+            fg_color="transparent",
+            border_width=0,
+        )
+        text_frame.grid(column=1,padx=(0,10),pady=(0,0),sticky="nsew")
+
+        # Manga title
+        title_label = ctk.CTkLabel(text_frame)
+        title_label.configure(
+            text=f"{manga["title"]}",
+            font=("Comic Sans MS", 16, "bold"),
+            justify="left",
+            wraplength=400
+        )
+        title_label.pack(anchor="w",pady=(1,2))
+
+        # Authors and artists detail
+        author_and_artist_label = ctk.CTkLabel(text_frame)
+        author_and_artist_label.configure(
+            text=
+f"""
+Authors: {", ".join(manga["authors"])}
+Artists: {", ".join(manga["artists"])}
+""",
+            justify="left",
+            
+
+        )
+        author_and_artist_label.pack(anchor="w",pady=(0,2))
+
+        # Descriptions
+        desc = ctk.CTkLabel(text_frame)
+        desc.configure(
+            text=description,
+            justify="left",
+            wraplength=500
+        )
+        desc.pack(anchor="w",pady=(0,5),fill="x", expand=True)
+
+        cover_image = ctk.CTkImage(Image.open(one_piece_cover_path),size=(150,225))
+        cover_image_label = ctk.CTkLabel(result_frame,image=cover_image,text="",)
+        cover_image_label.grid(column=0,row=0,padx=(3,10),pady=0,)
+
+      
+
+
+
 
     """ 
     APP GUI CODE
@@ -138,15 +221,15 @@ def run_app():
     search_entry.pack(side="left", expand=True, fill="x", padx=(0, 5))
 
     # Scrollable frame for manga list
-    search_list_frame = ctk.CTkScrollableFrame(manga_search)
-    search_list_frame.configure(
+    search_result_frame = ctk.CTkScrollableFrame(manga_search)
+    search_result_frame.configure(
         fg_color="transparent",
         border_width=1.5,
         corner_radius=13,
         scrollbar_button_color="light grey",
         scrollbar_button_hover_color="grey",
     )
-    search_list_frame.pack(expand=True, fill="both", pady=(1, 10), padx=110)
+    search_result_frame.pack(expand=True, fill="both", pady=(1, 10), padx=110)
 
     search_button = ctk.CTkButton(
         search_entry_frame,

@@ -26,7 +26,7 @@ def get_manga_data(title):
     # Parameters for the request
     params = {
         "title": title,
-        "limit": min(10, 10),
+        "limit": min(3, 3),
         "status[]": ["ongoing"],
         "includes[]": ["cover_art", "author", "artist"],
         "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
@@ -121,7 +121,7 @@ def get_latest_chapter(manga_id):
     try:
         url = f"https://api.mangadex.org/manga/{manga_id}/feed"
         params = {
-            'limit': 1,
+            'limit': 3,
             'order[chapter]': 'desc',
             'contentRating[]': ['safe', 'suggestive', 'erotica', 'pornographic']
         }
