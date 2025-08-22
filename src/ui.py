@@ -13,6 +13,7 @@ from functions import (
     extract_name_from_url,
     get_rows_from_csv,
     check_rss_feed,
+    get_manga_data,
 )
 
 # Path to resources folder
@@ -88,11 +89,17 @@ def run_app():
         send_in_app_notifications("Cleared!", "success.png")
 
     def check_feed():
-        dict_list = check_rss_feed()  # type: ignore
+        dict_list = check_rss_feed()
         if dict_list:
             for dict in dict_list:
                 NotificationLabel(notifications_list_frame, dict["name"], dict["time"])
         app.after(60000, check_feed)
+
+    def search_manga():
+        title = search_entry.get().strip()
+        
+        # returns a list of title, authors, artists, latest_chapter, description, cover_url of 10 mangas
+        manga_list = get_manga_data(title)
 
     """ 
     APP GUI CODE
@@ -146,7 +153,7 @@ def run_app():
     )
     search_button.configure(
         text="Search",
-        command=add_manga,
+        command=search_manga,
         font=("Comic Sans MS", 15, "bold"),
         border_width=1.5,
         height=45,
@@ -297,3 +304,5 @@ def run_app():
 
     # Run the app
     app.mainloop()
+
+run_app()

@@ -19,9 +19,131 @@ notifications_csv_path = path.join(RESOURCES_DIR, "csv_files", "notifications.cs
 icon_img_path = path.join(RESOURCES_DIR, "images", "logo_transparent.png")
 
 
+# Gets Manga Information from Mangadex
+def get_manga_data(title):
+    url = "https://api.mangadex.org/manga"
+    
+    # Parameters for the request
+    params = {
+        "title": title,
+        "limit": min(10, 10),
+        "status[]": ["ongoing"],
+        "includes[]": ["cover_art", "author", "artist"],
+        "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
+        "order[followedCount]": "desc"
+    }
+      
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        manga_list = []
+        for manga_data in data.get("data", []):
+            manga_info = extract_manga_info(manga_data)
+            if manga_info:
+                manga_list.append(manga_info)
+        
+        return manga_list
+        
+    except Exception as e:
+        print(f"Error searching manga: {e}")
+        return []
+
+# Extracts manga info from data
+def extract_manga_info(manga_data):
+    try:
+        manga_id = manga_data["id"]
+        attrs = manga_data["attributes"]
+        relationships = manga_data.get("relationships", [])
+        
+
+        # Get title English or Japanese
+        all_title = attrs.get("title", {})       
+        if "en" in all_title:
+            title = all_title["en"]
+        else:
+            if "ja" in all_title:
+                title = list(all_title.values())[0]
+            else:
+                title = "Unknown Title"
+        
+        # Get authors and artists name
+        authors = []
+        artists = []
+        cover_filename = None
+        
+        for rel in relationships:
+            if rel.get("type") == "author":
+                author_name = rel.get("attributes", {}).get("name")
+                if author_name and author_name not in authors:
+                    authors.append(author_name)
+            elif rel.get("type") == "artist":
+                artist_name = rel.get("attributes",{}).get("name")
+                if artist_name and artist_name not in artists:
+                    artists.append(artist_name)
+            elif rel.get("type") == "cover_art":
+                cover_filename = rel.get("attributes", {}).get("fileName")
+            
+        
+        # Get description
+        desc_obj = attrs.get("description", {})
+        if "en" in desc_obj:
+            description = desc_obj["en"]
+        elif desc_obj:
+            # Take the first available description
+            description = list(desc_obj.values())[0]
+        else:
+            description = None
+        
+        # Build cover image URL from manga id and cover filename
+        cover_url = None
+        if cover_filename:
+            cover_url = f"https://uploads.mangadex.org/covers/{manga_id}/{cover_filename}.256.jpg"
+        
+        # Get latest chapter 
+        latest_chapter_num = get_latest_chapter(manga_id)
+        
+        return {
+            "title": title,
+            "authors": authors,
+            "artists": artists,
+            "latest_chapter": latest_chapter_num,
+            "description": description,
+            "cover_url": cover_url,
+        }
+        
+    except Exception as e:
+        print(f"Error extracting manga info: {e}")
+        return None
+
+# gets latest chapter from manga_id
+def get_latest_chapter(manga_id):
+    try:
+        url = f"https://api.mangadex.org/manga/{manga_id}/feed"
+        params = {
+            'limit': 1,
+            'order[chapter]': 'desc',
+            'contentRating[]': ['safe', 'suggestive', 'erotica', 'pornographic']
+        }
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        chapters = data.get('data', [])
+        if chapters:
+            chapter_num = chapters[0]["attributes"].get("chapter")
+            if chapter_num:
+                return float(chapter_num)
+            else:
+                return None    
+        return None
+    
+    except Exception as e:
+        print(f"Error getting latest chapter: {e}")
+        return None
 
 
-# Function to add manga
+# Extract name from url
 def extract_name_from_url(url):
     if url == "":
         return False, "Enter a link before pressing Add."

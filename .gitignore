@@ -11,6 +11,8 @@ malapi.py
 mdex.py
 tempCodeRunnerFile.py
 test.py
+mangadexparser*.py
+search_manga.py
 
 # Ignore csv files
 *_test.csv
@@ -19,3 +21,6 @@ test.py
 Manga-Notifier.spec
 notifier.spec
 ss.text
+aa.json
+rel.json
+manga.json
