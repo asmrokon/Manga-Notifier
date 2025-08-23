@@ -44,14 +44,14 @@ def run_app():
     All FUNCTIONS
     """
 
-    def add_manga():
-        success, text = extract_name_from_url(manga_entry.get().strip())
-        if success:
-            MangaListLabel(manga_list_frame, text)
-            manga_entry.delete(0, "end")
-            send_in_app_notifications("New Manga Added!", "plus.png")
-        if not success:
-            send_in_app_notifications(text, "warning.png")
+    # def add_manga():
+    #     success, text = extract_name_from_url(manga_entry.get().strip())
+    #     if success:
+    #         MangaListLabel(manga_list_frame, text)
+    #         manga_entry.delete(0, "end")
+    #         send_in_app_notifications("New Manga Added!", "plus.png")
+    #     if not success:
+    #         send_in_app_notifications(text, "warning.png")
 
     def display_manga_ui():
         rows = get_rows_from_csv("manga_list.csv")
@@ -288,19 +288,6 @@ def run_app():
     # Manga List Tab
     manga_list_tab = tabs.add("Manga List")
 
-    # Entry frame
-    manga_entry_frame = ctk.CTkFrame(manga_list_tab)
-    manga_entry_frame.configure(border_width=0)
-    manga_entry_frame.pack(fill="x", pady=(30, 10), padx=130)
-
-    manga_entry = ctk.CTkEntry(manga_entry_frame)
-    manga_entry.configure(
-        placeholder_text="Enter MyAnimeList or MangaUpdates link",
-        border_width=1.5,
-        corner_radius=13,
-        height=45,
-    )
-    manga_entry.pack(side="left", expand=True, fill="x", padx=(0, 5))
 
     # Scrollable frame for manga list
     manga_list_frame = ctk.CTkScrollableFrame(manga_list_tab)
@@ -311,7 +298,7 @@ def run_app():
         scrollbar_button_color="light grey",
         scrollbar_button_hover_color="grey",
     )
-    manga_list_frame.pack(expand=True, fill="both", pady=(1, 10), padx=130)
+    manga_list_frame.pack(expand=True, fill="both", pady=(30, 10), padx=130)
 
     # Class for Manga list
     class MangaListLabel:
@@ -355,19 +342,6 @@ def run_app():
 
     display_manga_ui()
 
-    add_button = ctk.CTkButton(
-        manga_entry_frame,
-    )
-    add_button.configure(
-        text="Add",
-        command=add_manga,
-        font=("Comic Sans MS", 15, "bold"),
-        border_width=1.5,
-        height=45,
-        width=60,
-        corner_radius=13,
-    )
-    add_button.pack(side="right")
 
     # Notification tab
     notifications_tab = tabs.add("Notifications")
