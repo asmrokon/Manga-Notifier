@@ -2,6 +2,8 @@ from datetime import datetime
 import re
 from csv import DictReader, DictWriter
 from os import path
+from io import BytesIO
+from PIL import Image
 
 from feedparser import parse
 from winotify import Notification, audio
@@ -26,7 +28,7 @@ def get_manga_data(title):
     # Parameters for the request
     params = {
         "title": title,
-        "limit": min(3, 3),
+        "limit": min(10, 10),
         "status[]": ["ongoing"],
         "includes[]": ["cover_art", "author", "artist"],
         "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"],
@@ -121,7 +123,7 @@ def get_latest_chapter(manga_id):
     try:
         url = f"https://api.mangadex.org/manga/{manga_id}/feed"
         params = {
-            'limit': 3,
+            'limit': 10,
             'order[chapter]': 'desc',
             'contentRating[]': ['safe', 'suggestive', 'erotica', 'pornographic']
         }
@@ -191,6 +193,12 @@ def extract_name_from_url(url):
             writer.writerow({"name": manga_title.strip()})  # type: ignore
         return True, manga_title.strip()  # type: ignore
 
+# Loads image from link
+def load_image(url):
+    response = requests.get(url)
+    bytes = BytesIO(response.content)
+    image = Image.open(bytes)
+    return image
 
 # Display manga in the scrollable frame
 def get_rows_from_csv(file_name):
