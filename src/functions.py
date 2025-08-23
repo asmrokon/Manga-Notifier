@@ -59,15 +59,14 @@ def extract_manga_info(manga_data):
         relationships = manga_data.get("relationships", [])
         
 
-        # Get title English or Japanese
+        # Get title English or Japanese or 1st available title
         all_title = attrs.get("title", {})       
         if "en" in all_title:
             title = all_title["en"]
+        elif "ja" in all_title:
+            title = all_title["ja"]
         else:
-            if "ja" in all_title:
-                title = list(all_title.values())[0]
-            else:
-                title = "Unknown Title"
+            title = list(all_title.values())[0]
         
         # Get authors and artists name
         authors = []
@@ -102,14 +101,12 @@ def extract_manga_info(manga_data):
         if cover_filename:
             cover_url = f"https://uploads.mangadex.org/covers/{manga_id}/{cover_filename}.256.jpg"
         
-        # Get latest chapter 
-        latest_chapter_num = get_latest_chapter(manga_id)
-        
+  
         return {
             "title": title,
+            "manga_id": manga_id,
             "authors": authors,
             "artists": artists,
-            "latest_chapter": latest_chapter_num,
             "description": description,
             "cover_url": cover_url,
         }
@@ -123,15 +120,15 @@ def get_latest_chapter(manga_id):
     try:
         url = f"https://api.mangadex.org/manga/{manga_id}/feed"
         params = {
-            'limit': 10,
-            'order[chapter]': 'desc',
-            'contentRating[]': ['safe', 'suggestive', 'erotica', 'pornographic']
+            "limit": 1,
+            "order[chapter]": "desc",
+            "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
         }
         
         response = requests.get(url, params=params)
         data = response.json()
         
-        chapters = data.get('data', [])
+        chapters = data.get("data", [])
         if chapters:
             chapter_num = chapters[0]["attributes"].get("chapter")
             if chapter_num:
@@ -177,7 +174,7 @@ def extract_name_from_url(url):
         with open(
             manga_list_csv_path, "a", newline=""
         ) as f:
-            if check(name.strip(), "manga_list"):
+            if check_manga_list(name.strip(), "manga_list"):
                 return False, f"{name} already in the list"
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": name.strip()})  # type: ignore
@@ -187,7 +184,7 @@ def extract_name_from_url(url):
         with open(
             manga_list_csv_path, "a", newline=""
         ) as f:
-            if check(manga_title.strip(), "manga_list"):  # type: ignore
+            if check_manga_list(manga_title.strip(), "manga_list"):  # type: ignore
                 return False, f"{manga_title.strip()} already in the list"  # type: ignore
             writer = DictWriter(f, ["name"])
             writer.writerow({"name": manga_title.strip()})  # type: ignore
@@ -214,7 +211,7 @@ def check_rss_feed():
     rows = get_rows_from_csv("manga_list.csv")
     to_be_notified = []
     for row in rows:
-        if check(row["name"], "notification"):
+        if check_manga_list(row["name"], "notification"):
             for entry in html.entries:
                 if row["name"].lower() in str(entry.title).lower():
                     send_notification(row["name"])
@@ -242,43 +239,20 @@ def send_notification(name):
     toast.show()
 
 
-def check(name, mode):
-    if mode.lower() == "notification":
-        with open(notifications_csv_path, "r") as f:
-            rows = list(DictReader(f))
-            notification_names = []
-        for row in rows:
-            notification_names.append(row["name"].lower())
-        if name.lower() in notification_names:
-            for row in rows[::-1]:
-                if name.lower() == row["name"].lower():
-                    last_alerted = re.search(
-                        r"(?P<hour>\d{1,2}):(?P<min>\d{1,2})\s+(?P<date>\d{1,2})\s+(?P<month>[A-Za-z]+)",
-                        row["last_alerted"],
-                    )
-                    if last_alerted:
-                        diff = time_difference(
-                            2025,
-                            last_alerted.group("month"),
-                            last_alerted.group("date"),
-                            last_alerted.group("hour"),
-                            last_alerted.group("min"),
-                        )
-                        if diff > 2:
-                            return True
-                        else:
-                            return False
-        else:
-            return True
-    elif mode.lower() == "manga_list":
-        with open(manga_list_csv_path, "r") as f:
-            names = []
+def check_manga_list(manga_id,mode=""):
+    with open(manga_list_csv_path, "r") as f:
+            manga_ids = []
             for row in list(DictReader(f)):
-                names.append(row["name"].lower())
-        if name.lower() in names:
-            return True
-        else:
-            return False
+                manga_ids.append(row["manga_id"].lower())
+    if manga_id.lower() not in manga_ids:
+        return True
+    elif manga_id in manga_ids:
+        return False
+# Writes manga info on manga_list.csv
+def write_manga_info(title,manga_id,latest_chapter):
+    with open(manga_list_csv_path,"a",newline="") as f:
+        writer = DictWriter(f,["title","manga_id","latest_chapter"])
+        writer.writerow({"title":title,"manga_id":manga_id,"latest_chapter":latest_chapter})
 
 
 def time_difference(last_year, last_month, last_date, last_hour, last_min):

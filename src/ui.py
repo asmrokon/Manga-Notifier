@@ -14,6 +14,9 @@ from functions import (
     check_rss_feed,
     get_manga_data,
     load_image,
+    get_latest_chapter,
+    check_manga_list,
+    write_manga_info,
 )
 
 # Path to resources folder
@@ -44,19 +47,23 @@ def run_app():
     All FUNCTIONS
     """
 
-    # def add_manga():
-    #     success, text = extract_name_from_url(manga_entry.get().strip())
-    #     if success:
-    #         MangaListLabel(manga_list_frame, text)
-    #         manga_entry.delete(0, "end")
-    #         send_in_app_notifications("New Manga Added!", "plus.png")
-    #     if not success:
-    #         send_in_app_notifications(text, "warning.png")
+    # Adds manga to list
+    def add_manga(title,manga_id):
+        # gets latest chapter
+        latest_chapter = get_latest_chapter(manga_id)
+        
+        # check if manga is already in the list
+        if check_manga_list(manga_id):
+            write_manga_info(title,manga_id,latest_chapter)
+            MangaListLabel(manga_list_frame, title)
+            send_in_app_notifications("New Manga Added!", "plus.png")
+        elif not check_manga_list(manga_id):
+            send_in_app_notifications("Failed: Already in the list", "warning.png")
 
     def display_manga_ui():
         rows = get_rows_from_csv("manga_list.csv")
         for row in rows:
-            MangaListLabel(manga_list_frame, row["name"])
+            MangaListLabel(manga_list_frame, row["title"])
 
     def send_in_app_notifications(text, image):
         notification_frame = ctk.CTkFrame(app)
@@ -79,7 +86,7 @@ def run_app():
         rows = get_rows_from_csv("notifications.csv")
         for row in rows[::-1]:
             NotificationLabel(
-                notifications_list_frame, row["name"], row["last_alerted"]
+                notifications_list_frame, row["title"], row["last_alerted"]
             )
 
     def clear_notifications():
@@ -165,11 +172,14 @@ def run_app():
         # Loads manga cover
         load_cover(single_result_frame, manga["cover_url"])
 
+
+        def pass_info_to_add_manga():
+            add_manga(manga["title"],manga["manga_id"])
         # Create manga add button
-        add_button1 = ctk.CTkButton(single_result_frame)
-        add_button1.configure(
+        add_button = ctk.CTkButton(single_result_frame)
+        add_button.configure(
             text="",
-            command=...,
+            command=pass_info_to_add_manga,
             font=("Comic Sans MS", 15, "bold"),
             border_width=0,
             height=45,
@@ -178,7 +188,7 @@ def run_app():
             hover_color="#2B2B2B",
             image=ctk.CTkImage(Image.open(plus_img_path),size=(30,30))
         )
-        add_button1.grid(sticky="en",padx=3,pady=3,row=0,column=2)
+        add_button.grid(sticky="en",padx=3,pady=3,row=0,column=2)
 
 
 
@@ -302,14 +312,14 @@ def run_app():
 
     # Class for Manga list
     class MangaListLabel:
-        def __init__(self, list_frame, name):
+        def __init__(self, list_frame, title):
             self.list_frame = list_frame
-            self.name = name
+            self.title = title
             self.frame = ctk.CTkFrame(self.list_frame)
             self.frame.configure(border_width=1.5, fg_color="#3d3d3d", height=40)
             self.frame.pack(fill="x", pady=4)
 
-            self.label = ctk.CTkLabel(self.frame, text=self.name, height=40)
+            self.label = ctk.CTkLabel(self.frame, text=self.title, height=40)
             self.label.pack(side="left", padx=13, pady=5)
 
             self.remove_button = ctk.CTkButton(self.frame)
@@ -325,19 +335,19 @@ def run_app():
 
         def remove(self):
             self.frame.destroy()
-            names = []
+            dicts = []
             with open(manga_list_csv_path, "r") as f:
                 for row in DictReader(f):
-                    if row["name"] != self.name:
-                        names.append(row["name"])
+                    if row["title"] != self.title:
+                        dicts.append(row)
 
             with open(manga_list_csv_path, "w", newline="") as f:
-                writer = DictWriter(f, ["name"])
+                writer = DictWriter(f, ["title","manga_id","latest_chapter"])
                 writer.writeheader()
-                for name in names:
-                    writer.writerow({"name": name})
+                for dict in dicts:
+                    writer.writerow({"title":dict["title"],"manga_id":dict["manga_id"],"latest_chapter":dict["latest_chapter"]})
             send_in_app_notifications(
-                f"{self.name} has been removed from your list", "trash.png"
+                f"{self.title} has been removed from your list", "trash.png"
             )
 
     display_manga_ui()
@@ -395,7 +405,7 @@ def run_app():
 
     display_notification_list()
 
-    app.after(30000, check_feed)
+    #app.after(30000, check_feed)
 
     # Run the app
     app.mainloop()
