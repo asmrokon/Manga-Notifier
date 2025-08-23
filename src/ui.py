@@ -29,7 +29,7 @@ success_img_path = path.join(RESOURCES_DIR, "images", "success.png")
 plus_img_path = path.join(RESOURCES_DIR, "images", "plus.png")
 logo_ico_path = path.join(RESOURCES_DIR, "images", "logo_transparent.ico")
 
-one_piece_cover_path = path.join(RESOURCES_DIR, "images","1onepiece.jpg")
+one_piece_cover_path = path.join(RESOURCES_DIR, "images", "1onepiece.jpg")
 
 
 windll.shell32.SetCurrentProcessExplicitAppUserModelID("manga_notifier.1")
@@ -67,7 +67,9 @@ def run_app():
             text=f"  {text}",
             fg_color="transparent",
             font=font,
-            image=ctk.CTkImage(Image.open(path.join(RESOURCES_DIR, "images", f"{image}"))),
+            image=ctk.CTkImage(
+                Image.open(path.join(RESOURCES_DIR, "images", f"{image}"))
+            ),
             compound="left",
         )
         notification_label.pack(padx=10, pady=5)
@@ -81,9 +83,7 @@ def run_app():
             )
 
     def clear_notifications():
-        with open(
-            notifications_csv_path, "w", newline=""
-        ) as f:
+        with open(notifications_csv_path, "w", newline="") as f:
             writer = DictWriter(f, ["name", "last_alerted"])
             writer.writeheader()
         for widget in notifications_list_frame.winfo_children():
@@ -97,7 +97,7 @@ def run_app():
                 NotificationLabel(notifications_list_frame, dict["name"], dict["time"])
         app.after(60000, check_feed)
 
-    def search_manga():
+    def search_manga(event=None):
         title = search_entry.get().strip()
 
         # deletes old search result
@@ -113,7 +113,7 @@ def run_app():
             padx=20,
             font=("Comic Sans MS", 18, "bold"),
         )
-        searching_label.pack(anchor="n",side="top")
+        searching_label.pack(anchor="n", side="top")
         app.update_idletasks()
 
         # returns a list of title, authors, artists, latest_chapter, description, cover_url of 10 mangas
@@ -130,75 +130,97 @@ def run_app():
         # creates frame for each manga
         for manga in manga_list:
             create_result_frame(manga)
-    
 
     # creates frame for each manga inside search result scrollable frame
     def create_result_frame(manga):
         description = manga["description"]
         if len(description) > 450:
-            description = f"{manga["description"][:450].strip()}..."
+            description = f"{manga["description"][:450]}..."
 
-
-        result_frame = ctk.CTkFrame(search_result_frame, height=255)
-        result_frame.pack(fill="x", padx=10, pady=7,)
+        single_result_frame = ctk.CTkFrame(search_result_frame, height=255,)
+        single_result_frame.pack(
+            fill="x",
+            padx=10,
+            pady=7,
+        )
+        single_result_frame.grid_columnconfigure(1, weight=1)
 
         # text frame that will contain all texts
-        text_frame = ctk.CTkFrame(result_frame)
+        text_frame = ctk.CTkFrame(single_result_frame)
         text_frame.configure(
             fg_color="transparent",
             border_width=0,
         )
-        text_frame.grid(column=1,padx=(10,10),pady=(5,5),sticky="nsew")
+        text_frame.grid(column=1, padx=(10, 10), pady=(5, 5), sticky="nsew")
 
-        # Manga title
-        title_label = ctk.CTkLabel(text_frame)
+        # Display title
+        display_title(text_frame,manga["title"])
+
+        # Display Authors and artists detail
+        display_authors_and_artists(text_frame,manga["authors"],manga["artists"])
+
+        # display Descriptions
+        display_description(text_frame,description)
+
+        # Loads manga cover
+        load_cover(single_result_frame, manga["cover_url"])
+
+        # Create manga add button
+        add_button1 = ctk.CTkButton(single_result_frame)
+        add_button1.configure(
+            text="",
+            command=...,
+            font=("Comic Sans MS", 15, "bold"),
+            border_width=0,
+            height=45,
+            width=60,
+            fg_color="transparent",
+            hover_color="#2B2B2B",
+            image=ctk.CTkImage(Image.open(plus_img_path),size=(30,30))
+        )
+        add_button1.grid(sticky="en",padx=3,pady=3,row=0,column=2)
+
+
+
+    # Loads manga cover
+    def load_cover(frame, url):
+        cover_label = ctk.CTkLabel(frame, text="Loading...")
+        cover_label.grid(column=0, row=0, padx=(3, 10), pady=2)
+        cover_image = load_image(url)
+        if cover_image:
+            cover_label.configure(
+                image=ctk.CTkImage(cover_image, size=(170, 255)), text=""
+            )
+        else:
+            cover_label.configure(text="Failed loading")
+
+    def display_title(frame,title):
+        title_label = ctk.CTkLabel(frame)
         title_label.configure(
-            text=f"{manga["title"]}",
+            text=f"{title}",
             font=("Comic Sans MS", 17, "bold"),
             justify="left",
             wraplength=650,
         )
-        title_label.pack(anchor="nw",pady=(1,2))
-
-        # Authors and artists detail
-        author_and_artist_label = ctk.CTkLabel(text_frame)
+        title_label.grid(sticky="nw", pady=(1, 2))
+    
+    def display_authors_and_artists(frame,artists,authors):
+        author_and_artist_label = ctk.CTkLabel(frame)
         author_and_artist_label.configure(
-            text=
-f"""Authors: {", ".join(manga["authors"])}
-Artists: {", ".join(manga["artists"])}
-""",
+            text=f"Authors: {", ".join(authors)}\nArtists: {", ".join(artists)}",
             justify="left",
-            
-
         )
-        author_and_artist_label.pack(anchor="nw",pady=(0,2))
-
-        # Descriptions
-        desc = ctk.CTkLabel(text_frame)
+        author_and_artist_label.grid(sticky="nw", pady=(0, 7))
+    
+    def display_description(frame,description):
+        desc = ctk.CTkLabel(frame)
         desc.configure(
             text=description,
             justify="left",
             wraplength=650,
+            fg_color="transparent"
         )
-        desc.pack(anchor="nw",pady=(0,5),padx=(0,10),fill="x", expand=True)
-
-        # Loads manga cover
-        load_cover(result_frame,manga["cover_url"])
-
-
-    #Loads manga cover
-    def load_cover(frame,url):
-        cover_label = ctk.CTkLabel(frame, text="Loading...")
-        cover_label.grid(column=0, row=0, padx=(3,10), pady=2)
-        cover_image = load_image(url) 
-        if cover_image:
-            cover_label.configure(image=ctk.CTkImage(cover_image, size=(170,255)), text="")
-        else:
-            cover_label.configure(text="Failed loading")
-
-
-  
-
+        desc.grid(sticky="nw", pady=(0, 3), padx=(0, 10),)
 
 
     """ 
@@ -236,6 +258,7 @@ Artists: {", ".join(manga["artists"])}
         height=45,
     )
     search_entry.pack(side="left", expand=True, fill="x", padx=(0, 5))
+    search_entry.bind("<Return>", search_manga)
 
     # Scrollable frame for manga list
     search_result_frame = ctk.CTkScrollableFrame(manga_search)
@@ -321,9 +344,7 @@ Artists: {", ".join(manga["artists"])}
                     if row["name"] != self.name:
                         names.append(row["name"])
 
-            with open(
-                manga_list_csv_path, "w", newline=""
-            ) as f:
+            with open(manga_list_csv_path, "w", newline="") as f:
                 writer = DictWriter(f, ["name"])
                 writer.writeheader()
                 for name in names:
@@ -404,5 +425,6 @@ Artists: {", ".join(manga["artists"])}
 
     # Run the app
     app.mainloop()
+
 
 run_app()
