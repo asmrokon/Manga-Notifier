@@ -110,7 +110,7 @@ def run_app():
                     dict["rel_time"],
                     dict["latest_chapter"],
                 )
-        app.after(1800000, call_check_feed)
+        app.after(600000, call_check_feed)
 
     def search_manga(event=None):
         title = search_entry.get().strip()
@@ -417,6 +417,3 @@ def run_app():
 
     # Run the app
     app.mainloop()
-
-
-run_app()
