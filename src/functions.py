@@ -16,7 +16,7 @@ RESOURCES_DIR = path.join(BASE_DIR, "resources")
 
 manga_list_csv_path = path.join(RESOURCES_DIR, "csv_files", "manga_list.csv")
 notifications_csv_path = path.join(RESOURCES_DIR, "csv_files", "notifications.csv")
-icon_img_path = path.join(RESOURCES_DIR, "images", "logo_transparent.png")
+icon_img_path = path.join(RESOURCES_DIR, "images","app_icons","logo_transparent.png")
 
 
 # Gets Manga Information from Mangadex

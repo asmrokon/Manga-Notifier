@@ -5,7 +5,7 @@
 
 <div align="center">
 
-<img src="images/logo_transparent.png" alt="Manga Notifier Logo" width="120"/>
+<img src="resources/images/app_icons/logo_transparent.png" alt="Manga Notifier Logo" width="120"/>
 
 [![GitHub stars](https://img.shields.io/github/stars/asmrokon/Manga-Notifier?style=social)](https://github.com/asmrokon/Manga-Notifier/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/asmrokon/Manga-Notifier?style=social)](https://github.com/asmrokon/Manga-Notifier/network/members)
@@ -21,8 +21,7 @@
 
 ## ✨ Features
 
-- 📋 Add manga using MyAnimeList.net links
-- 📋 Add manga using MangaUpdates.com links  
+- 📋 Add manga by searching directly in the app 
 - 🗑️ Remove manga from your watchlist
 - 🔔 Get notifications for new chapters (almost instantly)
 - 🖥️ Clean desktop UI built with CustomTkinter
@@ -33,11 +32,14 @@
 
 ## 📸 Screenshots
 
-### Main Interface
-![Main Interface](images/manga_list.png)
+### Search Manga Example
+![Search Manga Example](resources/images/screenshots/search_tab.png)
+
+### Manga List Example
+![Manga List Example](resources/images/screenshots/manga_list_tab.png)
 
 ### Notification Example  
-![Main Interface](images/notification_list.png)
+![Notification Example](resources/images/screenshots/notifications_tab.png)
 
 ---
 
@@ -56,7 +58,7 @@
 #### **Option 2: Build from Source**
 
 Before you begin, ensure you have the following installed:
-- 🐍 **Python** (v3.14 or higher)
+- 🐍 **Python** (v3.13 or higher)
 - 🐙 **Git**
 
 1. Clone the repository
@@ -88,9 +90,9 @@ To update the app:
 
 ### 📚 **Adding Manga**
 
-1. 🔗 **Copy Link**: Copy the manga URL from MyAnimeList.net or MangaUpdates.com
-2. 📋 **Paste in App**: Paste the link into the Manga Notifier application
-3. ➕ **Add to Watchlist**: Click "Add" to start tracking
+1. 🔍 **Search in App**: Type the manga name in the app’s search bar
+2. 📋 **Select Manga**: Choose the correct manga from the search results
+3. ➕ **Add to Watchlist**: Click the **plus icon** at the top-right corner to start tracking
 4. 🔔 **Get Notified**: Receive Windows notifications for new chapter releases!
 
 ### 🗑️ **Managing Your Watchlist**
@@ -100,25 +102,8 @@ To update the app:
 - **Background Monitoring**: The app runs quietly in the background
 - **Error Prevention**: Duplicate and invalid entries are automatically handled
 
-### 🔔 **Notifications**
-
-- ⚡ **Real-time Updates**: Powered by MangaUpdates RSS feeds
-- 🎯 **Chapter-Specific**: Individual notification for each new chapter
-- 🔄 **Continuous Monitoring**: Background process checks for updates regularly
-
 ---
 
-## 🌐 **Supported Websites**
-
-### 🌟 **MyAnimeList.net Support**
-- Direct URL input for easy manga addition
-- Support for MAL manga links
-
-### 🌟 **MangaUpdates.com Support**
-- Native support for MangaUpdates manga URLs
-- Access to comprehensive manga information
-
----
 
 ## 🤝 **Contributing**
 
@@ -157,9 +142,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🙏 **Acknowledgments**
 
-- 🌟 **MyAnimeList** for their comprehensive manga database
-- 📚 **MangaUpdates** for their RSS feed and comprehensive manga database  
-- 🎨 **Icon Artists** for amazing visual assets
+- 🌟 **Mangadex** for their comprehensive manga database 
+- 🎨 **Icons8** for amazing visual assets
 - ☕ **Coffee** for powering coding sessions
 
 ---
@@ -197,8 +181,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - [ ] 🌐 **Cross-Platform**: Support for macOS and Linux
 - [ ] 📱 **Mobile Companion**: Mobile app for on-the-go management
 - [ ] 🔔 **Notification Customization**: Custom notification sounds and styles
-- [ ] 📊 **Reading Statistics**: Track your reading habits and progress
-- [ ] 🌍 **More Data Sources**: Integration with additional manga platforms
 - [ ] 🎨 **Themes**: Multiple UI themes and customization options
 - [ ] ⚙️ **Advanced Settings**: Configurable polling intervals and preferences
 

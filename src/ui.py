@@ -26,13 +26,12 @@ RESOURCES_DIR = path.join(BASE_DIR, "resources")
 manga_list_csv_path = path.join(RESOURCES_DIR, "csv_files", "manga_list.csv")
 notifications_csv_path = path.join(RESOURCES_DIR, "csv_files", "notifications.csv")
 theme_path = path.join(RESOURCES_DIR, "themes", "dark_theme.json")
-warning_img_path = path.join(RESOURCES_DIR, "images", "warning.png")
-trash_img_path = path.join(RESOURCES_DIR, "images", "trash.png")
-success_img_path = path.join(RESOURCES_DIR, "images", "success.png")
-plus_img_path = path.join(RESOURCES_DIR, "images", "plus.png")
-logo_ico_path = path.join(RESOURCES_DIR, "images", "logo_transparent.ico")
+warning_img_path = path.join(RESOURCES_DIR, "images","icons", "warning.png")
+trash_img_path = path.join(RESOURCES_DIR, "images","icons", "trash.png")
+success_img_path = path.join(RESOURCES_DIR, "images","icons", "success.png")
+plus_img_path = path.join(RESOURCES_DIR, "images","icons", "plus.png")
+logo_ico_path = path.join(RESOURCES_DIR, "images","app_icons", "logo_transparent.ico")
 
-one_piece_cover_path = path.join(RESOURCES_DIR, "images", "1onepiece.jpg")
 
 
 windll.shell32.SetCurrentProcessExplicitAppUserModelID("manga_notifier.1")
@@ -75,7 +74,7 @@ def run_app():
             fg_color="transparent",
             font=font,
             image=ctk.CTkImage(
-                Image.open(path.join(RESOURCES_DIR, "images", f"{image}"))
+                Image.open(path.join(RESOURCES_DIR, "images","icons", f"{image}"))
             ),
             compound="left",
         )
@@ -149,8 +148,8 @@ def run_app():
     # creates frame for each manga inside search result scrollable frame
     def create_result_frame(manga):
         description = manga["description"]
-        if len(description) > 650:
-            description = f"{manga["description"][:650]}..."
+        if len(description) > 450:
+            description = f"{manga["description"][:450]}..."
 
         single_result_frame = ctk.CTkFrame(
             search_result_frame,
