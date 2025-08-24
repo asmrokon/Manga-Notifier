@@ -4,6 +4,8 @@ from csv import DictReader, DictWriter
 from os import path
 from io import BytesIO
 from PIL import Image
+from time import sleep
+import threading
 
 from feedparser import parse
 from winotify import Notification, audio
@@ -198,40 +200,79 @@ def load_image(url):
     return image
 
 # Display manga in the scrollable frame
-def get_rows_from_csv(file_name):
-    with open(path.join(RESOURCES_DIR, "csv_files", f"{file_name}"), "r") as f:
+def get_rows_from_csv(file_path):
+    with open(file_path, "r") as f:
         rows = list(DictReader(f))
         return rows
 
 
-# Check Manga feed after every 3 minutes
-def check_rss_feed():
-    html = parse("https://www.mangaupdates.com/rss")
-    time = datetime.now().strftime("%H:%M %d %B")
-    rows = get_rows_from_csv("manga_list.csv")
+# Check Manga feed every 30 minutes
+def check_feed():
+    manga_list = get_rows_from_csv(manga_list_csv_path)
     to_be_notified = []
+    for manga in manga_list:
+        sleep(1)
+        last_latest_chapter = manga["latest_chapter"]
+        latest_chapter = get_latest_chapter(manga["manga_id"])
+        if last_latest_chapter and latest_chapter:
+            if float(latest_chapter) > float(last_latest_chapter):
+                to_be_notified.append({"title":manga["title"],"latest_chapter":latest_chapter,"rel_time":datetime.now().strftime("%H:%M %d %B")})
+                update_manga_list(manga["title"],manga["manga_id"],latest_chapter)
+                update_notifications_list(manga["title"],latest_chapter,datetime.now().strftime("%H:%M %d %B"))
+                send_notification(manga["title"])
+    
+    return to_be_notified
+
+# Update notifications.csv
+def update_notifications_list(title,latest_chapter,time):
+    with open(notifications_csv_path,"a",newline="") as f:
+        writer = DictWriter(f,["title","latest_chapter","rel_time"])
+        writer.writerow({"title":title,"latest_chapter":latest_chapter,"rel_time":time})
+
+# Updates manga's latest chapter info
+def update_manga_list(title,manga_id,latest_chapter):
+    manga_dict_list = []
+    rows = get_rows_from_csv(manga_list_csv_path)
     for row in rows:
-        if check_manga_list(row["name"], "notification"):
-            for entry in html.entries:
-                if row["name"].lower() in str(entry.title).lower():
-                    send_notification(row["name"])
-                    with open(
-                        notifications_csv_path,
-                        "a",
-                        newline="",
-                    ) as f:
-                        writer = DictWriter(f, ["name", "last_alerted"])
-                        writer.writerow({"name": row["name"], "last_alerted": time})
-                        to_be_notified.append({"name": row["name"], "time": time})
-    if len(to_be_notified) >= 1:
-        return to_be_notified
+        if manga_id == row["manga_id"]:
+            manga_dict_list.append({"title":title,"manga_id":manga_id,"latest_chapter":latest_chapter})
+        elif manga_id != row["manga_id"]:
+            manga_dict_list.append(row)
+    with open(manga_list_csv_path,"w",newline="") as f:
+        writer = DictWriter(f,["title","manga_id","latest_chapter"])
+        writer.writeheader()
+        writer.writerows(manga_dict_list)
+        
 
 
-def send_notification(name):
+
+
+# Check if a manga is in notification list and when last was notified
+def check_notification_list(title):
+    notifiation_titles = []
+    notification_rows = get_rows_from_csv(notifications_csv_path)
+    manga_title_rows = get_rows_from_csv(manga_list_csv_path)
+    for row in notification_rows:
+        notifiation_titles.append(row["title"])
+    for manga in manga_title_rows:
+        if manga["title"] in notifiation_titles:
+            for row in notification_rows[::-1]:
+                if row["title"] == manga["title"]:
+                    ...
+
+
+
+
+
+        else:
+            return True
+
+
+def send_notification(title):
     toast = Notification(
         app_id="Manga Notifier",
-        title=f"New {name} Chapter Released!",
-        msg=f"{name} just dropped a new chapter! Time to read!",
+        title=f"New {title} Chapter Released!",
+        msg=f"{title} just dropped a new chapter! Time to read!",
         duration="long",
         icon=icon_img_path,
     )

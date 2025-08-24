@@ -9,9 +9,8 @@ from PIL import Image
 
 # Functions
 from functions import (
-    extract_name_from_url,
     get_rows_from_csv,
-    check_rss_feed,
+    check_feed,
     get_manga_data,
     load_image,
     get_latest_chapter,
@@ -61,7 +60,7 @@ def run_app():
             send_in_app_notifications("Failed: Already in the list", "warning.png")
 
     def display_manga_ui():
-        rows = get_rows_from_csv("manga_list.csv")
+        rows = get_rows_from_csv(manga_list_csv_path)
         for row in rows:
             MangaListLabel(manga_list_frame, row["title"])
 
@@ -83,7 +82,7 @@ def run_app():
         notification_frame.after(3000, lambda: notification_frame.destroy())
 
     def display_notification_list():
-        rows = get_rows_from_csv("notifications.csv")
+        rows = get_rows_from_csv(notifications_csv_path)
         for row in rows[::-1]:
             NotificationLabel(
                 notifications_list_frame, row["title"], row["last_alerted"]
@@ -97,12 +96,12 @@ def run_app():
             widget.destroy()
         send_in_app_notifications("Cleared!", "success.png")
 
-    def check_feed():
-        dict_list = check_rss_feed()
+    def call_check_feed():
+        dict_list = check_feed()
         if dict_list:
             for dict in dict_list:
-                NotificationLabel(notifications_list_frame, dict["name"], dict["time"])
-        app.after(60000, check_feed)
+                NotificationLabel(notifications_list_frame, dict["title"], dict["rel_time"])
+        app.after(1800000, call_check_feed)
 
     def search_manga(event=None):
         title = search_entry.get().strip()
@@ -141,8 +140,8 @@ def run_app():
     # creates frame for each manga inside search result scrollable frame
     def create_result_frame(manga):
         description = manga["description"]
-        if len(description) > 450:
-            description = f"{manga["description"][:450]}..."
+        if len(description) > 650:
+            description = f"{manga["description"][:650]}..."
 
         single_result_frame = ctk.CTkFrame(search_result_frame, height=255,)
         single_result_frame.pack(
@@ -344,8 +343,7 @@ def run_app():
             with open(manga_list_csv_path, "w", newline="") as f:
                 writer = DictWriter(f, ["title","manga_id","latest_chapter"])
                 writer.writeheader()
-                for dict in dicts:
-                    writer.writerow({"title":dict["title"],"manga_id":dict["manga_id"],"latest_chapter":dict["latest_chapter"]})
+                writer.writerows(dicts)
             send_in_app_notifications(
                 f"{self.title} has been removed from your list", "trash.png"
             )
@@ -405,7 +403,7 @@ def run_app():
 
     display_notification_list()
 
-    #app.after(30000, check_feed)
+    app.after(30000, call_check_feed)
 
     # Run the app
     app.mainloop()
