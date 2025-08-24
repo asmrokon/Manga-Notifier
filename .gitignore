@@ -13,6 +13,7 @@ tempCodeRunnerFile.py
 test.py
 mangadexparser*.py
 search_manga.py
+test_*.py
 
 # Ignore csv files
 *_test.csv
