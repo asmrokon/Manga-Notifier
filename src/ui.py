@@ -16,6 +16,7 @@ from functions import (
     get_latest_chapter,
     check_manga_list,
     write_manga_info,
+    wrap_text,
 )
 
 # Path to resources folder
@@ -47,13 +48,13 @@ def run_app():
     """
 
     # Adds manga to list
-    def add_manga(title,manga_id):
+    def add_manga(title, manga_id):
         # gets latest chapter
         latest_chapter = get_latest_chapter(manga_id)
-        
+
         # check if manga is already in the list
         if check_manga_list(manga_id):
-            write_manga_info(title,manga_id,latest_chapter)
+            write_manga_info(title, manga_id, latest_chapter)
             MangaListLabel(manga_list_frame, title)
             send_in_app_notifications("New Manga Added!", "plus.png")
         elif not check_manga_list(manga_id):
@@ -85,22 +86,30 @@ def run_app():
         rows = get_rows_from_csv(notifications_csv_path)
         for row in rows[::-1]:
             NotificationLabel(
-                notifications_list_frame, row["title"], row["last_alerted"]
+                notifications_list_frame,
+                row["title"],
+                row["rel_time"],
+                row["latest_chapter"],
             )
 
     def clear_notifications():
-        with open(notifications_csv_path, "w", newline="") as f:
-            writer = DictWriter(f, ["name", "last_alerted"])
-            writer.writeheader()
         for widget in notifications_list_frame.winfo_children():
             widget.destroy()
+        with open(notifications_csv_path, "w", newline="") as f:
+            writer = DictWriter(f, ["title", "latest_chapter", "rel_time"])
+            writer.writeheader()
         send_in_app_notifications("Cleared!", "success.png")
 
     def call_check_feed():
         dict_list = check_feed()
         if dict_list:
             for dict in dict_list:
-                NotificationLabel(notifications_list_frame, dict["title"], dict["rel_time"])
+                NotificationLabel(
+                    notifications_list_frame,
+                    dict["title"],
+                    dict["rel_time"],
+                    dict["latest_chapter"],
+                )
         app.after(1800000, call_check_feed)
 
     def search_manga(event=None):
@@ -143,7 +152,10 @@ def run_app():
         if len(description) > 650:
             description = f"{manga["description"][:650]}..."
 
-        single_result_frame = ctk.CTkFrame(search_result_frame, height=255,)
+        single_result_frame = ctk.CTkFrame(
+            search_result_frame,
+            height=255,
+        )
         single_result_frame.pack(
             fill="x",
             padx=10,
@@ -160,20 +172,20 @@ def run_app():
         text_frame.grid(column=1, padx=(10, 10), pady=(5, 5), sticky="nsew")
 
         # Display title
-        display_title(text_frame,manga["title"])
+        display_title(text_frame, manga["title"])
 
         # Display Authors and artists detail
-        display_authors_and_artists(text_frame,manga["authors"],manga["artists"])
+        display_authors_and_artists(text_frame, manga["authors"], manga["artists"])
 
         # display Descriptions
-        display_description(text_frame,description)
+        display_description(text_frame, description)
 
         # Loads manga cover
         load_cover(single_result_frame, manga["cover_url"])
 
-
         def pass_info_to_add_manga():
-            add_manga(manga["title"],manga["manga_id"])
+            add_manga(manga["title"], manga["manga_id"])
+
         # Create manga add button
         add_button = ctk.CTkButton(single_result_frame)
         add_button.configure(
@@ -185,11 +197,9 @@ def run_app():
             width=60,
             fg_color="transparent",
             hover_color="#2B2B2B",
-            image=ctk.CTkImage(Image.open(plus_img_path),size=(30,30))
+            image=ctk.CTkImage(Image.open(plus_img_path), size=(30, 30)),
         )
-        add_button.grid(sticky="en",padx=3,pady=3,row=0,column=2)
-
-
+        add_button.grid(sticky="en", padx=3, pady=3, row=0, column=2)
 
     # Loads manga cover
     def load_cover(frame, url):
@@ -203,7 +213,7 @@ def run_app():
         else:
             cover_label.configure(text="Failed loading")
 
-    def display_title(frame,title):
+    def display_title(frame, title):
         title_label = ctk.CTkLabel(frame)
         title_label.configure(
             text=f"{title}",
@@ -212,25 +222,25 @@ def run_app():
             wraplength=650,
         )
         title_label.grid(sticky="nw", pady=(1, 2))
-    
-    def display_authors_and_artists(frame,artists,authors):
+
+    def display_authors_and_artists(frame, artists, authors):
         author_and_artist_label = ctk.CTkLabel(frame)
         author_and_artist_label.configure(
             text=f"Authors: {", ".join(authors)}\nArtists: {", ".join(artists)}",
             justify="left",
         )
         author_and_artist_label.grid(sticky="nw", pady=(0, 7))
-    
-    def display_description(frame,description):
+
+    def display_description(frame, description):
         desc = ctk.CTkLabel(frame)
         desc.configure(
-            text=description,
-            justify="left",
-            wraplength=650,
-            fg_color="transparent"
+            text=description, justify="left", wraplength=650, fg_color="transparent"
         )
-        desc.grid(sticky="nw", pady=(0, 3), padx=(0, 10),)
-
+        desc.grid(
+            sticky="nw",
+            pady=(0, 3),
+            padx=(0, 10),
+        )
 
     """ 
     APP GUI CODE
@@ -297,7 +307,6 @@ def run_app():
     # Manga List Tab
     manga_list_tab = tabs.add("Manga List")
 
-
     # Scrollable frame for manga list
     manga_list_frame = ctk.CTkScrollableFrame(manga_list_tab)
     manga_list_frame.configure(
@@ -341,7 +350,7 @@ def run_app():
                         dicts.append(row)
 
             with open(manga_list_csv_path, "w", newline="") as f:
-                writer = DictWriter(f, ["title","manga_id","latest_chapter"])
+                writer = DictWriter(f, ["title", "manga_id", "latest_chapter"])
                 writer.writeheader()
                 writer.writerows(dicts)
             send_in_app_notifications(
@@ -349,7 +358,6 @@ def run_app():
             )
 
     display_manga_ui()
-
 
     # Notification tab
     notifications_tab = tabs.add("Notifications")
@@ -383,17 +391,19 @@ def run_app():
     notifications_list_frame.pack(expand=True, fill="both", pady=(30, 0), padx=130)
 
     class NotificationLabel:
-        def __init__(self, list_frame, name, time):
+        def __init__(self, list_frame, name, time, latest_chapter):
             self.name = name
             self.time = time
             self.list_frame = list_frame
+            self.latest_chapter = latest_chapter
             self.frame = ctk.CTkFrame(self.list_frame)
             self.frame.configure(border_width=1.5, fg_color="#3d3d3d")
             self.frame.pack(fill="x", pady=4)
 
             self.label = ctk.CTkLabel(self.frame)
             self.label.configure(
-                text=f"A new chapter of {self.name} has been released", height=40
+                text=f"A new chapter of {wrap_text(self.name,35)} has been released | New Chapter: {self.latest_chapter}",
+                height=40,
             )
             self.label.pack(side="left", padx=13, pady=5)
 
