@@ -74,7 +74,7 @@ pip install -r requirements.txt
 
 3. Run the app
 ```bash
-python Manga-Notifier.py
+python main.py
 ```
 
 ### 🔄 Updates
@@ -142,8 +142,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🙏 **Acknowledgments**
 
-- 🌟 **Mangadex** for their comprehensive manga database 
-- 🎨 **Icons8** for amazing visual assets
+- 🌟 [**Mangadex**](https://mangadex.org/) for their comprehensive manga database 
+- 🎨 [**Icons8**](https://icons8.com/) for amazing visual assets
 - ☕ **Coffee** for powering coding sessions
 
 ---
