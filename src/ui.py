@@ -17,20 +17,24 @@ from functions import (
     check_manga_list,
     write_manga_info,
     wrap_text,
+    get_resource_path,
+    get_csv_path
 )
 
+
+
 # Path to resources folder
-BASE_DIR = path.dirname(path.dirname(__file__))
+BASE_DIR = path.abspath(path.dirname(__file__))
 RESOURCES_DIR = path.join(BASE_DIR, "resources")
 
-manga_list_csv_path = path.join(RESOURCES_DIR, "csv_files", "manga_list.csv")
-notifications_csv_path = path.join(RESOURCES_DIR, "csv_files", "notifications.csv")
-theme_path = path.join(RESOURCES_DIR, "themes", "dark_theme.json")
-warning_img_path = path.join(RESOURCES_DIR, "images","icons", "warning.png")
-trash_img_path = path.join(RESOURCES_DIR, "images","icons", "trash.png")
-success_img_path = path.join(RESOURCES_DIR, "images","icons", "success.png")
-plus_img_path = path.join(RESOURCES_DIR, "images","icons", "plus.png")
-logo_ico_path = path.join(RESOURCES_DIR, "images","app_icons", "logo_transparent.ico")
+manga_list_csv_path = get_csv_path(path.join("resources","csv_files", "manga_list.csv"))
+notifications_csv_path = get_csv_path(path.join("resources","csv_files", "notifications.csv"))
+theme_path = get_resource_path(path.join("resources", "themes", "dark_theme.json"))
+warning_img_path = get_resource_path(path.join("resources","images","icons", "warning.png"))
+trash_img_path = get_resource_path(path.join("resources","images","icons", "trash.png"))
+success_img_path = get_resource_path(path.join("resources","images","icons", "success.png"))
+plus_img_path = get_resource_path(path.join("resources","images","icons", "plus.png"))
+logo_ico_path = get_resource_path(path.join("resources","images","app_icons", "logo_transparent.ico"))
 
 
 
@@ -74,7 +78,7 @@ def run_app():
             fg_color="transparent",
             font=font,
             image=ctk.CTkImage(
-                Image.open(path.join(RESOURCES_DIR, "images","icons", f"{image}"))
+                Image.open(get_resource_path(path.join("resources","images","icons", f"{image}")))
             ),
             compound="left",
         )

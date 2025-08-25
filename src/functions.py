@@ -4,19 +4,38 @@ from os import path
 from io import BytesIO
 from PIL import Image
 from time import sleep
+import sys
 
 
 from winotify import Notification, audio
 import requests
 
 
+def get_resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS
+    else:
+        script_dir = path.abspath(path.dirname(__file__))
+        base_path = path.dirname(script_dir)
+    
+    return path.join(base_path, relative_path)
+
+def get_csv_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        exe_dir = path.dirname(sys.executable)
+        return path.join(exe_dir, relative_path)
+    else:
+        script_dir = path.abspath(path.dirname(__file__))
+        base_path = path.dirname(script_dir)
+        return path.join(base_path, relative_path)
+    
 # Path to resources folder
-BASE_DIR = path.dirname(path.dirname(__file__))
+BASE_DIR = path.abspath(path.dirname(__file__))
 RESOURCES_DIR = path.join(BASE_DIR, "resources")
 
-manga_list_csv_path = path.join(RESOURCES_DIR, "csv_files", "manga_list.csv")
-notifications_csv_path = path.join(RESOURCES_DIR, "csv_files", "notifications.csv")
-icon_img_path = path.join(RESOURCES_DIR, "images","app_icons","logo_transparent.png")
+manga_list_csv_path = get_csv_path(path.join("resources","csv_files", "manga_list.csv"))
+notifications_csv_path = get_csv_path(path.join("resources","csv_files", "notifications.csv"))
+icon_img_path = get_resource_path(path.join("resources","images","app_icons","logo_transparent.png"))
 
 
 # Gets Manga Information from Mangadex
