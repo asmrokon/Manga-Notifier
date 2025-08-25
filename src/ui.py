@@ -2,6 +2,7 @@
 from csv import DictWriter, DictReader
 from ctypes import windll
 from os import path
+import threading
 
 # Third Party modules
 import customtkinter as ctk
@@ -18,24 +19,34 @@ from functions import (
     write_manga_info,
     wrap_text,
     get_resource_path,
-    get_csv_path
+    get_csv_path,
 )
-
 
 
 # Path to resources folder
 BASE_DIR = path.abspath(path.dirname(__file__))
 RESOURCES_DIR = path.join(BASE_DIR, "resources")
 
-manga_list_csv_path = get_csv_path(path.join("resources","csv_files", "manga_list.csv"))
-notifications_csv_path = get_csv_path(path.join("resources","csv_files", "notifications.csv"))
+manga_list_csv_path = get_csv_path(
+    path.join("resources", "csv_files", "manga_list.csv")
+)
+notifications_csv_path = get_csv_path(
+    path.join("resources", "csv_files", "notifications.csv")
+)
 theme_path = get_resource_path(path.join("resources", "themes", "dark_theme.json"))
-warning_img_path = get_resource_path(path.join("resources","images","icons", "warning.png"))
-trash_img_path = get_resource_path(path.join("resources","images","icons", "trash.png"))
-success_img_path = get_resource_path(path.join("resources","images","icons", "success.png"))
-plus_img_path = get_resource_path(path.join("resources","images","icons", "plus.png"))
-logo_ico_path = get_resource_path(path.join("resources","images","app_icons", "logo_transparent.ico"))
-
+warning_img_path = get_resource_path(
+    path.join("resources", "images", "icons", "warning.png")
+)
+trash_img_path = get_resource_path(
+    path.join("resources", "images", "icons", "trash.png")
+)
+success_img_path = get_resource_path(
+    path.join("resources", "images", "icons", "success.png")
+)
+plus_img_path = get_resource_path(path.join("resources", "images", "icons", "plus.png"))
+logo_ico_path = get_resource_path(
+    path.join("resources", "images", "app_icons", "logo_transparent.ico")
+)
 
 
 windll.shell32.SetCurrentProcessExplicitAppUserModelID("manga_notifier.1")
@@ -78,7 +89,11 @@ def run_app():
             fg_color="transparent",
             font=font,
             image=ctk.CTkImage(
-                Image.open(get_resource_path(path.join("resources","images","icons", f"{image}")))
+                Image.open(
+                    get_resource_path(
+                        path.join("resources", "images", "icons", f"{image}")
+                    )
+                )
             ),
             compound="left",
         )
@@ -104,16 +119,18 @@ def run_app():
         send_in_app_notifications("Cleared!", "success.png")
 
     def call_check_feed():
-        dict_list = check_feed()
-        if dict_list:
-            for dict in dict_list:
-                NotificationLabel(
-                    notifications_list_frame,
-                    dict["title"],
-                    dict["rel_time"],
-                    dict["latest_chapter"],
-                )
-        app.after(600000, call_check_feed)
+        def on_returned_list(dict_list):
+            if dict_list:
+                for dict in dict_list:
+                    NotificationLabel(
+                        notifications_list_frame,
+                        dict["title"],
+                        dict["rel_time"],
+                        dict["latest_chapter"],
+                    )
+
+        check_feed(on_returned_list)
+        app.after(300000, call_check_feed)
 
     def search_manga(event=None):
         title = search_entry.get().strip()
@@ -134,14 +151,18 @@ def run_app():
         searching_label.pack(anchor="n", side="top")
         app.update_idletasks()
 
-        # returns a list of title, authors, artists, latest_chapter, description, cover_url of 10 mangas
-        manga_list = get_manga_data(title)
+        def worker():
+            # returns a list of title, authors, artists, latest_chapter, description, cover_url of 10 mangas
+            manga_list = get_manga_data(title)
 
-        # deletes searching_label
-        searching_label.destroy()
+            # update UI back on main thread
+            def update_ui():
+                searching_label.destroy()
+                create_result_entry(manga_list)
 
-        # shows search result
-        create_result_entry(manga_list)
+            app.after(0, update_ui)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # creates search result
     def create_result_entry(manga_list):
@@ -208,13 +229,19 @@ def run_app():
     def load_cover(frame, url):
         cover_label = ctk.CTkLabel(frame, text="Loading...")
         cover_label.grid(column=0, row=0, padx=(3, 10), pady=2)
-        cover_image = load_image(url)
-        if cover_image:
-            cover_label.configure(
-                image=ctk.CTkImage(cover_image, size=(170, 255)), text=""
-            )
-        else:
-            cover_label.configure(text="Failed loading")
+
+        def on_image_ready(img):
+            if img:
+                ctk_img = ctk.CTkImage(img, size=(170, 255))
+                cover_label.after(
+                    0, lambda: cover_label.configure(image=ctk_img, text="")
+                )
+            else:
+                cover_label.after(
+                    0, lambda: cover_label.configure(text="Failed loading")
+                )
+
+        load_image(url, on_image_ready)
 
     def display_title(frame, title):
         title_label = ctk.CTkLabel(frame)

@@ -5,6 +5,7 @@ from io import BytesIO
 from PIL import Image
 from time import sleep
 import sys
+from threading import Thread
 
 
 from winotify import Notification, audio
@@ -12,30 +13,38 @@ import requests
 
 
 def get_resource_path(relative_path):
-    if hasattr(sys, '_MEIPASS'):
-        base_path = sys._MEIPASS
+    if hasattr(sys, "_MEIPASS"):
+        base_path = sys._MEIPASS  # type: ignore
     else:
         script_dir = path.abspath(path.dirname(__file__))
         base_path = path.dirname(script_dir)
-    
+
     return path.join(base_path, relative_path)
 
+
 def get_csv_path(relative_path):
-    if hasattr(sys, '_MEIPASS'):
+    if hasattr(sys, "_MEIPASS"):
         exe_dir = path.dirname(sys.executable)
         return path.join(exe_dir, relative_path)
     else:
         script_dir = path.abspath(path.dirname(__file__))
         base_path = path.dirname(script_dir)
         return path.join(base_path, relative_path)
-    
+
+
 # Path to resources folder
 BASE_DIR = path.abspath(path.dirname(__file__))
 RESOURCES_DIR = path.join(BASE_DIR, "resources")
 
-manga_list_csv_path = get_csv_path(path.join("resources","csv_files", "manga_list.csv"))
-notifications_csv_path = get_csv_path(path.join("resources","csv_files", "notifications.csv"))
-icon_img_path = get_resource_path(path.join("resources","images","app_icons","logo_transparent.png"))
+manga_list_csv_path = get_csv_path(
+    path.join("resources", "csv_files", "manga_list.csv")
+)
+notifications_csv_path = get_csv_path(
+    path.join("resources", "csv_files", "notifications.csv")
+)
+icon_img_path = get_resource_path(
+    path.join("resources", "images", "app_icons", "logo_transparent.png")
+)
 
 
 # Gets Manga Information from Mangadex
@@ -159,11 +168,14 @@ def get_latest_chapter(manga_id):
 
 
 # Loads image from link
-def load_image(url):
-    response = requests.get(url)
-    bytes = BytesIO(response.content)
-    image = Image.open(bytes)
-    return image
+def load_image(url, callback):
+    def worker():
+        response = requests.get(url)
+        bytes = BytesIO(response.content)
+        image = Image.open(bytes)
+        callback(image)
+
+    Thread(target=worker, daemon=True).start()
 
 
 # Display manga in the scrollable frame
@@ -173,32 +185,36 @@ def get_rows_from_csv(file_path):
         return rows
 
 
-# Check Manga feed every 30 minutes
-def check_feed():
+# Check Manga feed
+def check_feed(callback):
     manga_list = get_rows_from_csv(manga_list_csv_path)
     to_be_notified = []
-    for manga in manga_list:
-        sleep(1)
-        last_latest_chapter = manga["latest_chapter"]
-        latest_chapter = get_latest_chapter(manga["manga_id"])
-        if last_latest_chapter and latest_chapter:
-            if float(latest_chapter) > float(last_latest_chapter):
-                to_be_notified.append(
-                    {
-                        "title": manga["title"],
-                        "latest_chapter": latest_chapter,
-                        "rel_time": datetime.now().strftime("%H:%M %d %B"),
-                    }
-                )
-                update_manga_list(manga["title"], manga["manga_id"], latest_chapter)
-                update_notifications_list(
-                    manga["title"],
-                    latest_chapter,
-                    datetime.now().strftime("%H:%M %d %B"),
-                )
-                send_notification(manga["title"])
 
-    return to_be_notified
+    def worker():
+        for manga in manga_list:
+            sleep(1)
+            last_latest_chapter = manga["latest_chapter"]
+            latest_chapter = get_latest_chapter(manga["manga_id"])
+            if last_latest_chapter and latest_chapter:
+                if float(latest_chapter) > float(last_latest_chapter):
+                    to_be_notified.append(
+                        {
+                            "title": manga["title"],
+                            "latest_chapter": latest_chapter,
+                            "rel_time": datetime.now().strftime("%H:%M %d %B"),
+                        }
+                    )
+                    update_manga_list(manga["title"], manga["manga_id"], latest_chapter)
+                    update_notifications_list(
+                        manga["title"],
+                        latest_chapter,
+                        datetime.now().strftime("%H:%M %d %B"),
+                    )
+                    send_notification(manga["title"])
+        if callback:
+            callback(to_be_notified)
+
+    Thread(target=worker, daemon=True).start()
 
 
 # Update notifications.csv
