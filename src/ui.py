@@ -1,5 +1,5 @@
 # Built in modules
-from csv import DictWriter, DictReader
+from csv import DictWriter
 from ctypes import windll
 from os import path
 import threading
@@ -20,6 +20,10 @@ from functions import (
     wrap_text,
     get_resource_path,
     get_csv_path,
+    get_covers_path,
+    convert_title_into_file_name,
+    remove_manga,
+    process_description,
 )
 
 
@@ -62,22 +66,45 @@ def run_app():
     """
 
     # Adds manga to list
-    def add_manga(title, manga_id):
+    def add_manga(title, manga_id, authors, artists, descriptions, cover_url):
         # gets latest chapter
         latest_chapter = get_latest_chapter(manga_id)
-
+        manga = {
+            "title": title,
+            "manga_id": manga_id,
+            "latest_chapter": latest_chapter,
+            "authors": authors,
+            "artists": artists,
+            "description": descriptions,
+            "cover_name": convert_title_into_file_name(title),
+        }
         # check if manga is already in the list
-        if check_manga_list(manga_id):
-            write_manga_info(title, manga_id, latest_chapter)
-            MangaListLabel(manga_list_frame, title)
+        if check_manga_list(manga_id) and latest_chapter:
+            write_manga_info(
+                title,
+                manga_id,
+                latest_chapter,
+                authors,
+                artists,
+                descriptions,
+                cover_url,
+            )
+
+            create_single_manga_frame(manga)
             send_in_app_notifications("New Manga Added!", "plus.png")
         elif not check_manga_list(manga_id):
             send_in_app_notifications("Failed: Already in the list", "warning.png")
+        elif not latest_chapter:
+            send_in_app_notifications(
+                "Failed: Could not fetch Latest Chapter information", "warning.png"
+            )
 
     def display_manga_ui():
+        for _ in manga_list_frame.winfo_children():
+            _.destroy()
         rows = get_rows_from_csv(manga_list_csv_path)
         for row in rows:
-            MangaListLabel(manga_list_frame, row["title"])
+            create_single_manga_frame(row)
 
     def send_in_app_notifications(text, image):
         notification_frame = ctk.CTkFrame(app)
@@ -128,6 +155,7 @@ def run_app():
                         dict["rel_time"],
                         dict["latest_chapter"],
                     )
+                display_manga_ui()
 
         check_feed(on_returned_list)
         app.after(300000, call_check_feed)
@@ -152,7 +180,7 @@ def run_app():
         app.update_idletasks()
 
         def worker():
-            # returns a list of title, authors, artists, latest_chapter, description, cover_url of 10 mangas
+            # returns a list of title, authors, artists, latest_chapter, description, cover_url of first 10 mangas
             manga_list = get_manga_data(title)
 
             # update UI back on main thread
@@ -175,6 +203,8 @@ def run_app():
         description = manga["description"]
         if len(description) > 450:
             description = f"{manga["description"][:450]}..."
+        authors = ", ".join(manga["authors"])
+        artists = ", ".join(manga["artists"])
 
         single_result_frame = ctk.CTkFrame(
             search_result_frame,
@@ -199,7 +229,7 @@ def run_app():
         display_title(text_frame, manga["title"])
 
         # Display Authors and artists detail
-        display_authors_and_artists(text_frame, manga["authors"], manga["artists"])
+        display_authors_and_artists(text_frame, authors, artists)
 
         # display Descriptions
         display_description(text_frame, description)
@@ -208,7 +238,14 @@ def run_app():
         load_cover(single_result_frame, manga["cover_url"])
 
         def pass_info_to_add_manga():
-            add_manga(manga["title"], manga["manga_id"])
+            add_manga(
+                manga["title"],
+                manga["manga_id"],
+                authors,
+                artists,
+                description,
+                manga["cover_url"],
+            )
 
         # Create manga add button
         add_button = ctk.CTkButton(single_result_frame)
@@ -253,10 +290,10 @@ def run_app():
         )
         title_label.grid(sticky="nw", pady=(1, 2))
 
-    def display_authors_and_artists(frame, artists, authors):
+    def display_authors_and_artists(frame, authors, artists):
         author_and_artist_label = ctk.CTkLabel(frame)
         author_and_artist_label.configure(
-            text=f"Authors: {", ".join(authors)}\nArtists: {", ".join(artists)}",
+            text=f"Authors: {authors}\nArtists: {artists}",
             justify="left",
         )
         author_and_artist_label.grid(sticky="nw", pady=(0, 7))
@@ -271,6 +308,81 @@ def run_app():
             pady=(0, 3),
             padx=(0, 10),
         )
+
+    # Creates frame for each manga
+    def create_single_manga_frame(manga):
+        single_manga_frame = ctk.CTkFrame(
+            manga_list_frame,
+            height=255,
+        )
+        single_manga_frame.pack(
+            fill="x",
+            padx=10,
+            pady=7,
+            expand=False,
+        )
+        single_manga_frame.grid_columnconfigure(1, weight=1)
+
+        # text frame that will contain all texts
+        text_frame = ctk.CTkFrame(single_manga_frame)
+        text_frame.configure(
+            fg_color="transparent",
+            border_width=0,
+        )
+        text_frame.grid(column=1, padx=(10, 10), pady=(5, 5), sticky="nsew")
+
+        # Display title
+        display_title(text_frame, manga["title"])
+
+        # Display latest_chapter
+        display_latest_chapter(single_manga_frame, manga["latest_chapter"])
+
+        # Display Authors and artists detail
+        display_authors_and_artists(text_frame, manga["authors"], manga["artists"])
+
+        # display Descriptions
+        description = process_description(manga["description"], "display")
+        display_description(text_frame, description)
+
+        # Loads manga cover
+        load_cover_from_file(single_manga_frame, manga["cover_name"])
+
+        def pass_info_to_remove_manga():
+            single_manga_frame.destroy()
+            remove_manga(manga["manga_id"], manga["cover_name"])
+            send_in_app_notifications("Removed!", "trash.png")
+
+        # Create manga remove button
+        remove_button = ctk.CTkButton(single_manga_frame)
+        remove_button.configure(
+            text="",
+            command=pass_info_to_remove_manga,
+            font=("Comic Sans MS", 15, "bold"),
+            border_width=0,
+            height=45,
+            width=60,
+            fg_color="transparent",
+            hover_color="#2B2B2B",
+            image=ctk.CTkImage(Image.open(trash_img_path), size=(30, 30)),
+        )
+        remove_button.grid(sticky="es", padx=3, pady=3, column=2, row=0)
+
+    def load_cover_from_file(frame, image_name):
+        cover_label = ctk.CTkLabel(frame, text="Loading...")
+        cover_label.grid(column=0, row=0, padx=(3, 10), pady=2)
+        cover_img = ctk.CTkImage(
+            Image.open(get_covers_path(image_name)), size=(170, 255)
+        )
+        cover_label.configure(image=cover_img, text="")
+
+    def display_latest_chapter(frame, latest_chapter):
+        latest_chapter_label = ctk.CTkLabel(frame)
+        latest_chapter_label.configure(
+            text=f"Latest Chapter: {latest_chapter}",
+            justify="left",
+            font=("Comic Sans MS", 15, "bold"),
+        )
+        latest_chapter_label.grid(sticky="en", padx=10, pady=3, row=0, column=2)
 
     """ 
     APP GUI CODE
@@ -347,45 +459,6 @@ def run_app():
         scrollbar_button_hover_color="grey",
     )
     manga_list_frame.pack(expand=True, fill="both", pady=(30, 10), padx=130)
-
-    # Class for Manga list
-    class MangaListLabel:
-        def __init__(self, list_frame, title):
-            self.list_frame = list_frame
-            self.title = title
-            self.frame = ctk.CTkFrame(self.list_frame)
-            self.frame.configure(border_width=1.5, fg_color="#3d3d3d", height=40)
-            self.frame.pack(fill="x", pady=4)
-
-            self.label = ctk.CTkLabel(self.frame, text=self.title, height=40)
-            self.label.pack(side="left", padx=13, pady=5)
-
-            self.remove_button = ctk.CTkButton(self.frame)
-            self.remove_button.configure(
-                text="Remove",
-                width=60,
-                border_width=1.5,
-                command=self.remove,
-                font=("Comic Sans MS", 15, "bold"),
-                height=35,
-            )
-            self.remove_button.pack(side="right", padx=5)
-
-        def remove(self):
-            self.frame.destroy()
-            dicts = []
-            with open(manga_list_csv_path, "r") as f:
-                for row in DictReader(f):
-                    if row["title"] != self.title:
-                        dicts.append(row)
-
-            with open(manga_list_csv_path, "w", newline="") as f:
-                writer = DictWriter(f, ["title", "manga_id", "latest_chapter"])
-                writer.writeheader()
-                writer.writerows(dicts)
-            send_in_app_notifications(
-                f"{self.title} has been removed from your list", "trash.png"
-            )
 
     display_manga_ui()
 

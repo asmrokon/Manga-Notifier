@@ -1,6 +1,6 @@
 from datetime import datetime
 from csv import DictReader, DictWriter
-from os import path
+from os import path, remove
 from io import BytesIO
 from PIL import Image
 from time import sleep
@@ -30,6 +30,21 @@ def get_csv_path(relative_path):
         script_dir = path.abspath(path.dirname(__file__))
         base_path = path.dirname(script_dir)
         return path.join(base_path, relative_path)
+
+
+def get_covers_path(relative_path):
+    if hasattr(sys, "_MEIPASS"):
+        exe_dir = path.dirname(sys.executable)
+        full_path = path.join(
+            exe_dir, "resources", "images", "cover_images", relative_path
+        )
+    else:
+        script_dir = path.abspath(path.dirname(__file__))
+        base_path = path.dirname(script_dir)
+        full_path = path.join(
+            base_path, "resources", "images", "cover_images", relative_path
+        )
+    return full_path
 
 
 # Path to resources folder
@@ -181,8 +196,7 @@ def load_image(url, callback):
 # Display manga in the scrollable frame
 def get_rows_from_csv(file_path):
     with open(file_path, "r") as f:
-        rows = list(DictReader(f))
-        return rows
+        return list(DictReader(f))
 
 
 # Check Manga feed
@@ -204,7 +218,7 @@ def check_feed(callback):
                             "rel_time": datetime.now().strftime("%H:%M %d %B"),
                         }
                     )
-                    update_manga_list(manga["title"], manga["manga_id"], latest_chapter)
+                    update_manga_latest_chapter(manga["manga_id"], latest_chapter)
                     update_notifications_list(
                         manga["title"],
                         latest_chapter,
@@ -227,18 +241,37 @@ def update_notifications_list(title, latest_chapter, time):
 
 
 # Updates manga's latest chapter info
-def update_manga_list(title, manga_id, latest_chapter):
+def update_manga_latest_chapter(manga_id, latest_chapter):
     manga_dict_list = []
-    rows = get_rows_from_csv(manga_list_csv_path)
-    for row in rows:
-        if manga_id == row["manga_id"]:
+    manga_rows = get_rows_from_csv(manga_list_csv_path)
+    for manga in manga_rows:
+        if manga_id == manga["manga_id"]:
             manga_dict_list.append(
-                {"title": title, "manga_id": manga_id, "latest_chapter": latest_chapter}
+                {
+                    "title": manga["title"],
+                    "manga_id": manga_id,
+                    "latest_chapter": latest_chapter,
+                    "authors": manga["authors"],
+                    "artists": manga["artists"],
+                    "description": manga["description"],
+                    "cover_name": manga["cover_name"],
+                }
             )
-        elif manga_id != row["manga_id"]:
-            manga_dict_list.append(row)
+        elif manga_id != manga["manga_id"]:
+            manga_dict_list.append(manga)
     with open(manga_list_csv_path, "w", newline="") as f:
-        writer = DictWriter(f, ["title", "manga_id", "latest_chapter"])
+        writer = DictWriter(
+            f,
+            [
+                "title",
+                "manga_id",
+                "latest_chapter",
+                "authors",
+                "artists",
+                "description",
+                "cover_name",
+            ],
+        )
         writer.writeheader()
         writer.writerows(manga_dict_list)
 
@@ -262,7 +295,7 @@ def send_notification(title):
     toast.show()
 
 
-def check_manga_list(manga_id, mode=""):
+def check_manga_list(manga_id):
     with open(manga_list_csv_path, "r") as f:
         manga_ids = []
         for row in list(DictReader(f)):
@@ -274,9 +307,107 @@ def check_manga_list(manga_id, mode=""):
 
 
 # Writes manga info on manga_list.csv
-def write_manga_info(title, manga_id, latest_chapter):
+def write_manga_info(
+    title, manga_id, latest_chapter, authors, artists, description, cover_url
+):
+    cover_name = convert_title_into_file_name(title)
+    save_cover(cover_name, cover_url)
+    description = process_description(description, "store")
     with open(manga_list_csv_path, "a", newline="") as f:
-        writer = DictWriter(f, ["title", "manga_id", "latest_chapter"])
-        writer.writerow(
-            {"title": title, "manga_id": manga_id, "latest_chapter": latest_chapter}
+        writer = DictWriter(
+            f,
+            [
+                "title",
+                "manga_id",
+                "latest_chapter",
+                "authors",
+                "artists",
+                "description",
+                "cover_name",
+            ],
         )
+        writer.writerow(
+            {
+                "title": title,
+                "manga_id": manga_id,
+                "latest_chapter": latest_chapter,
+                "authors": authors,
+                "artists": artists,
+                "description": description,
+                "cover_name": cover_name,
+            }
+        )
+
+
+# replaces description's line break with <br>
+def process_description(description, mode):
+    if mode.lower() == "store":
+        return description.replace("\n", "<br>")
+    elif mode.lower() == "display":
+        return description.replace("<br>", "\n")
+
+
+# saves images in resources/images/cover_images/
+def save_cover(cover_name, url):
+    filepath = get_covers_path(cover_name)
+
+    response = requests.get(url)
+    response.raise_for_status()
+
+    with open(filepath, "wb") as file:
+        file.write(response.content)
+
+
+# converts title for cover name
+def convert_title_into_file_name(title):
+    garbages = [
+    ".", ",", ":", ";", "!", "?", "\"", "'", "“", "”", "‘", "’",
+    "(", ")", "[", "]", "{", "}",
+    "+", "-", "±", "*", "/", "×", "÷",
+    "=", "<", ">", "≠", "≤", "≥",
+    "%", "$", "¥", "£", "€",
+    "~", "|", "_", "@", "#", "&", "^", "\\", "/", "…",
+    "「", "」", "『", "』", "、", "。", "・", "〜",
+    "！", "？", "：", "；",
+    "♥", "★", "☆", "♪", "♬",
+    "→", "←", "↑", "↓",
+    "／", "＼", "°", "©", "®", "™"
+]
+
+    title = title.lower().strip()
+    for garbage in garbages:
+        if garbage in title:
+            title = title.replace(garbage, "")
+
+    return f"{title.strip().replace(" ","_")}.jpg"
+
+
+def remove_manga(manga_id, cover_name):
+    rows = get_rows_from_csv(manga_list_csv_path)
+    not_to_remove = []
+    for row in rows:
+        if row["manga_id"] != manga_id:
+            not_to_remove.append(row)
+
+    remove_cover(cover_name)
+    with open(manga_list_csv_path, "w", newline="") as f:
+        writer = DictWriter(
+            f,
+            [
+                "title",
+                "manga_id",
+                "latest_chapter",
+                "authors",
+                "artists",
+                "description",
+                "cover_name",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows(not_to_remove)
+
+
+def remove_cover(cover_name):
+    cover_path = get_covers_path(cover_name)
+    if path.exists(cover_path):
+        remove(cover_path)
